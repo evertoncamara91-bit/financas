@@ -111,16 +111,40 @@ nav button.on span{filter:none;opacity:1}
 #toast{position:fixed;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 100px);max-width:488px;margin:0 auto;background:var(--ink);color:#fff;padding:12px 16px;border-radius:14px;font-size:14px;z-index:20;opacity:0;pointer-events:none;transition:.2s;text-align:center}
 #toast.on{opacity:1}
 p.hint{font-size:12.5px;color:var(--mute);margin:8px 4px}
+
+/* ---- conforto de toque no celular ---- */
+body{-webkit-touch-callout:none}
+.pill button{padding:11px 14px;font-size:19px}
+.pill span{min-width:62px}
+.chk,.tog{position:relative}
+.chk{width:30px;height:30px;border-radius:9px;font-size:17px}
+.chk::before,.tog::before{content:"";position:absolute;inset:-9px}
+.lbl{align-items:center}
+.lbl button{padding:12px 8px;margin:-12px -8px}
+.field{padding:3px 0}
+.field input[type=text],.field input[type=date],.field select{min-height:44px}
+.inp{min-height:42px}
+.field b:has(+ .inp){flex:0 1 auto;min-width:0}
+.sel{min-height:42px}
+.chips button{padding:11px 15px;font-size:14px}
+.seg button{padding:12px 6px}
+.amount input{width:min(230px,66vw)}
+.row>button[style*="color:var(--red)"]{padding:14px 8px!important}
+@media (max-width:350px){#app,#modal .in{padding-left:12px;padding-right:12px}.hd h1{font-size:19px}.hero .big{font-size:29px}.grid button{font-size:10px}.t{font-size:13px}}
+details.more{margin:0 0 12px}
+details.more summary{list-style:none;color:var(--green);font-weight:700;font-size:14px;padding:12px 4px;cursor:pointer}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::after{content:" ▾"}
+details.more[open] summary::after{content:" ▴"}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <nav><div>
   <button data-tab="home"><span>🏠</span>Início</button>
-  <button data-tab="lim"><span>📊</span>Limites</button>
   <button data-tab="plans"><span>💳</span>Contas</button>
+  <button data-tab="inv"><span>💰</span>Guardar</button>
   <button data-tab="hist"><span>📈</span>Histórico</button>
-  <button data-tab="irpf"><span>🧾</span>IRPF</button>
 </div></nav>
 <button class="fab" data-act="newtx" aria-label="Novo lançamento">+</button>
 <input type="file" id="pdfin" accept="application/pdf,.pdf" hidden>
@@ -150,7 +174,7 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fmt(v){var n=Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});return (v<-0.004?'− ':'')+'R$ '+n}
 function num(v){return v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2})}
-function parseBR(s){s=String(s).replace(/[^\d,.\-]/g,'');if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.');var n=parseFloat(s);return isFinite(n)?Math.round(n*100)/100:0}
+function parseBR(s){s=String(s).replace(/[^\d,.\-]/g,'');if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.');else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');var n=parseFloat(s);return isFinite(n)?Math.round(n*100)/100:0}
 function r2(n){return Math.round(n*100)/100}
 function diff(a,b){return (+a.slice(0,4)-+b.slice(0,4))*12+(+a.slice(5,7)-+b.slice(5,7))}
 function addM(ym,k){var y=+ym.slice(0,4),m=+ym.slice(5,7)-1+k;y+=Math.floor(m/12);m=((m%12)+12)%12;return y+'-'+pad(m+1)}
@@ -186,7 +210,7 @@ function alerts(ym){
 
 /* ---------- telas ---------- */
 function head(title,noMonth){
-  return '<div class="hd"><h1>'+title+'</h1>'+(noMonth?'':'<div class="pill"><button data-act="mprev" aria-label="Mês anterior">‹</button><span>'+mName(cur,1)+'</span><button data-act="mnext" aria-label="Próximo mês">›</button></div>')+'<button class="ic" data-act="cfg" aria-label="Ajustes">⚙️</button></div>';
+  return '<div class="hd"><h1>'+title+'</h1>'+(noMonth?'':'<div class="pill"><button data-act="mprev" aria-label="Mês anterior">‹</button><span>'+mName(cur,1)+'</span><button data-act="mnext" aria-label="Próximo mês">›</button></div>')+'<button class="ic" data-act="cfg" aria-label="Mais opções e ajustes">⚙️</button></div>';
 }
 function txRow(t){
   var c=CAT[t.cat]||CAT.outros;
@@ -255,9 +279,10 @@ function vHist(){
   return h+'</div><p class="hint">Toque em um mês para ver os lançamentos dele.</p>';
 }
 function render(){
-  var v={home:vHome,lim:vLim,plans:vPlans,hist:vHist,irpf:vIrpf}[tab]();
+  var v={home:vHome,lim:vLim,plans:vPlans,hist:vHist,irpf:vIrpf,inv:vInv}[tab]();
   document.getElementById('app').innerHTML=v;
   [].forEach.call(document.querySelectorAll('nav [data-tab]'),function(b){b.className=b.getAttribute('data-tab')===tab?'on':''});
+  var fb=document.querySelector('.fab');if(fb)fb.style.display=tab==='inv'?'none':'';
 }
 
 /* ---------- formulários ---------- */
@@ -326,8 +351,8 @@ function savePlan(){
   save();closeM();toast('Conta salva');
 }
 function cfg(){
-  openM('<div class="hd"><h1>Ajustes</h1><button class="ic" data-act="close" aria-label="Fechar">✕</button></div>'+
-  '<div class="lbl"><span>Personalizar</span></div><div class="card"><button class="btn sec" data-act="setup" style="margin-top:0">Nomes, formas de pagamento e categorias</button></div><div class="lbl"><span>Backup</span></div><div class="card"><p style="font-size:13.5px;color:var(--mute)">Os dados ficam guardados só neste aparelho. Faça um backup de vez em quando e antes de trocar de celular.</p><button class="btn" data-act="exp">Exportar backup</button><button class="btn sec" data-act="imp">Importar backup</button></div>'+
+  openM('<div class="hd"><h1>Mais opções</h1><button class="ic" data-act="close" aria-label="Fechar">✕</button></div>'+
+  '<div class="card"><button class="btn sec" data-tab="lim" style="margin-top:0">📊 Limites de gastos</button><button class="btn sec" data-tab="irpf">🧾 Imposto de renda (IRPF)</button></div><div class="lbl"><span>Personalizar</span></div><div class="card"><button class="btn sec" data-act="setup" style="margin-top:0">Nomes, formas de pagamento e categorias</button></div><div class="lbl"><span>Backup</span></div><div class="card"><p style="font-size:13.5px;color:var(--mute)">Os dados ficam guardados só neste aparelho. Faça um backup de vez em quando e antes de trocar de celular.</p><button class="btn" data-act="exp">Exportar backup</button><button class="btn sec" data-act="imp">Importar backup</button></div>'+
   '<div class="lbl"><span>Dados</span></div><div class="card"><p style="font-size:13.5px;color:var(--mute)">'+S.tx.length+' lançamentos · '+S.plans.length+' contas cadastradas.</p><button class="btn sec" data-act="reset" style="color:var(--red)">'+(BLANK?'Apagar tudo e começar do zero':'Voltar aos dados da planilha')+'</button></div>'+
   '<div class="lbl"><span>Instalar no iPhone</span></div><div class="card"><p style="font-size:13.5px;color:var(--mute)">No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”. Use sempre o atalho criado: os dados dele são separados dos do Safari.</p></div>');
 }
@@ -345,7 +370,7 @@ var tt;function toast(m){var e=document.getElementById('toast');e.textContent=m;
 document.addEventListener('click',function(ev){
   var el=ev.target.closest('[data-act],[data-tab]');if(!el)return;
   var tb=el.getAttribute('data-tab'),a=el.getAttribute('data-act'),id=el.getAttribute('data-id'),v=el.getAttribute('data-v');
-  if(tb){tab=tb;showAll=false;render();window.scrollTo(0,0);return}
+  if(tb){tab=tb;showAll=false;document.getElementById('modal').className='';F=null;render();window.scrollTo(0,0);return}
   if(extClick(a,el,id,v))return;
   switch(a){
     case 'mprev':cur=addM(cur,-1);showAll=false;render();break;
@@ -440,6 +465,7 @@ function vIrpf(){
     if(fi==='div'&&irWho==='E')S.plans.forEach(function(p){if(p.k!=='div'||p.cat==='carro')return;var n=Math.min(p.tot,Math.max(0,pn(p,y+'-12'))),s=r2((p.tot-n)*p.v);
       h+='<div class="row"><div class="mid"><div class="t"><span>'+esc(p.name)+': saldo em 31/12</span><span class="v">≈ '+fmt(s)+'</span></div><div class="sub">estimativa: '+(p.tot-n)+' parcelas × '+fmt(p.v)+' · use o valor do extrato do banco</div></div></div>'});
     h+='</div><p class="hint">'+(I.f?'<b>'+I.f+'.</b> ':'')+I.d+'</p>'});
+  h+=irInv(y);
   h+='<div class="lbl"><span>Documentos para reunir</span></div><div class="card p0">';
   S.irchk=S.irchk||{};
   CHK.forEach(function(c,i){var k=y+irWho+i,on=S.irchk[k];h+='<div class="row"><button class="chk'+(on?' on':'')+'" data-act="irchk" data-key="'+k+'" aria-label="Marcar">'+(on?'✓':'')+'</button><div class="mid" style="font-size:14px">'+c+'</div></div>'});
@@ -665,6 +691,203 @@ document.addEventListener('change',function(ev){
     if(f.size>15*1024*1024){toast('Arquivo muito grande (máx. 15 MB)');return}
     readBuf(f).then(function(buf){var o={id:uid(),name:f.name||'comprovante',type:f.type||'application/octet-stream',buf:buf};
       return fput(o).then(function(){meta(IG).files.push({id:o.id,name:o.name,size:f.size});save();irgForm();toast('Comprovante anexado')})}).catch(function(){toast('Não foi possível guardar o anexo neste aparelho')})}
+});
+
+/* ================= Guardar e investir ================= */
+var ICL=[['acoes','📈','Ações'],['fiis','🏢','FIIs'],['rf','🏦','Renda fixa'],['poup','🐷','Poupança'],['etf','🧺','ETFs'],['ext','🌎','Exterior e BDRs'],['cripto','🪙','Cripto'],['fundos','💼','Fundos e previdência'],['outros','➕','Outros']];
+var ICLI=ICL.filter(function(c){return c[0]!=='poup'});
+var PK=['Dividendo','JCP','Rendimento','Juros/Cupom','Aluguel de ações','Outros'];
+var EMO=['🏠','✈️','🚗','🎓','🛟','🎁','💍','👶','🐶','🏖️','💻','💰'];
+var IF=null,IA=null,CF=null,invView='poup';
+function INV(){return S.inv||(S.inv={assets:[],ops:[]})}
+function icl(k){for(var i=0;i<ICL.length;i++)if(ICL[i][0]===k)return ICL[i];return ICL[ICL.length-1]}
+function parseQ(s){s=String(s).replace(/[^\d,.]/g,'');if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.');var n=parseFloat(s);return isFinite(n)?n:0}
+function fq(n){return n.toLocaleString('pt-BR',{maximumFractionDigits:8})}
+function isM(a){return !!a&&a.cls==='poup'}
+function asset(id){return INV().assets.filter(function(a){return a.id===id})[0]}
+function dBR(d){return d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4)}
+function today(){var t=new Date();return t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate())}
+function pos(a,until){
+  var q=0,c=0,real=0,prov=0,provY=0,dep=0,saq=0,y=cur.slice(0,4),m=isM(a);
+  INV().ops.filter(function(o){return o.aid===a.id&&(!until||o.d<=until)}).sort(function(x,z){return x.d<z.d?-1:x.d>z.d?1:0}).forEach(function(o){
+    if(o.k==='P'){prov+=o.v;if(o.d.slice(0,4)===y)provY+=o.v}
+    else if(m){if(o.k==='C')dep+=o.v;else saq+=o.v}
+    else if(o.k==='C'){q+=o.q;c+=o.v}
+    else{var s=Math.min(o.q,q),avg=q>0?c/q:0;c-=avg*s;real+=o.v-avg*s;q-=s}});
+  if(m){var bal=r2(dep-saq+prov);return{q:bal>0?1:0,cost:r2(Math.max(0,Math.min(bal,dep-saq))),val:Math.max(0,bal),pm:0,real:0,prov:r2(prov),provY:r2(provY),dep:r2(dep),saq:r2(saq)}}
+  if(q<1e-9){q=0;c=0}
+  return{q:q,cost:r2(c),val:r2(a.px>0&&!until?q*a.px:c),pm:q?c/q:0,real:r2(real),prov:r2(prov),provY:r2(provY),dep:0,saq:0};
+}
+function goalBar(a,p){
+  if(!(a.goal>0))return '';
+  var pc=Math.min(100,p.val/a.goal*100),left=r2(a.goal-p.val);
+  return '<div class="bar" style="height:9px;margin-top:10px"><i style="width:'+pc+'%"></i></div><div class="sub">'+(left<=0?'🎉 Meta de '+fmt(a.goal)+' atingida':Math.round(pc)+'% da meta de '+fmt(a.goal)+' · faltam '+fmt(left))+'</div>';
+}
+function big3(l,id){return '<div style="display:flex;gap:8px">'+l.map(function(x){return '<button class="btn sec" style="margin-top:0;padding:14px 4px;font-size:14px" data-act="invnew" data-v="'+x[0]+'"'+(id?' data-id="'+id+'"':'')+'><span style="display:block;font-size:22px">'+x[1]+'</span>'+x[2]+'</button>'}).join('')+'</div>'}
+function vInv(){
+  return head('Guardar e investir',true)+'<div class="seg"><button data-act="invview" data-v="poup" class="'+(invView==='poup'?'on':'')+'">🐷 Poupança</button><button data-act="invview" data-v="inv" class="'+(invView==='inv'?'on':'')+'">📈 Investimentos</button></div>'+(invView==='poup'?vPoup():vInvest());
+}
+function vPoup(){
+  var bx=INV().assets.filter(isM).map(function(a){return{a:a,p:pos(a)}}),tot=0,dep=0,saq=0,prov=0,h='';
+  bx.forEach(function(x){tot+=x.p.val;dep+=x.p.dep;saq+=x.p.saq;prov+=x.p.prov});
+  h+='<div class="card hero"><small>Você tem guardado</small><div class="big">'+fmt(r2(tot))+'</div><div class="split"><div>Já guardou<b>'+fmt(r2(dep))+'</b></div><div>Já resgatou<b>'+fmt(r2(saq))+'</b></div></div>'+(prov?'<div class="ft">Rendeu até agora: <b>'+fmt(r2(prov))+'</b></div>':'')+'</div>';
+  if(!bx.length)h+='<div class="card"><div class="empty" style="font-size:14px">Você ainda não tem caixinhas.<br>Crie uma para cada objetivo: casa, viagem, reserva de emergência…</div></div>';
+  else h+='<div class="lbl"><span>Suas caixinhas</span></div>';
+  bx.sort(function(a,b){return b.p.val-a.p.val}).forEach(function(x){
+    h+='<button class="card" data-act="inva" data-id="'+x.a.id+'" style="display:block;width:100%;text-align:left"><div class="row" style="padding:0"><div class="em" style="width:44px;height:44px;font-size:22px">'+(x.a.emo||'🐷')+'</div><div class="mid"><div class="t" style="font-size:16px"><span>'+esc(x.a.name)+'</span><span class="v">'+fmt(x.p.val)+'</span></div>'+(x.a.goal>0?'':'<div class="sub">'+(x.p.saq?'já resgatou '+fmt(x.p.saq):'nenhum resgate até agora')+'</div>')+'</div><span style="color:var(--mute)">›</span></div>'+goalBar(x.a,x.p)+'</button>'});
+  return h+'<button class="btn" data-act="boxnew">＋ Nova caixinha</button><p class="hint">Toque em uma caixinha para guardar, resgatar ou anotar quanto rendeu.</p>';
+}
+function vInvest(){
+  var I=INV(),y=cur.slice(0,4),ps=I.assets.filter(function(a){return !isM(a)}).map(function(a){return{a:a,p:pos(a)}}),tot=0,cost=0,provY=0,h='',ids={};
+  ps.forEach(function(x){tot+=x.p.val;cost+=x.p.cost;provY+=x.p.provY;ids[x.a.id]=1});tot=r2(tot);cost=r2(cost);provY=r2(provY);
+  var res=r2(tot-cost);
+  h+='<div class="card hero"><small>Você tem investido</small><div class="big">'+fmt(tot)+'</div><div class="split"><div>Quanto colocou<b>'+fmt(cost)+'</b></div><div>Recebeu em '+y+'<b>'+fmt(provY)+'</b></div></div>'+(Math.abs(res)>0.004?'<div class="ft">'+(res>=0?'Está ganhando ':'Está perdendo ')+'<b>'+fmt(Math.abs(res))+(cost>0?' ('+(Math.abs(res)/cost*100).toFixed(1).replace('.',',')+'%)':'')+'</b> sobre o que colocou</div>':'')+'</div>';
+  h+=big3([['C','🛒','Comprei'],['V','💵','Vendi'],['P','✨','Recebi']]);
+  if(!ps.length)return h+'<div class="card" style="margin-top:12px"><div class="empty" style="font-size:14px">Nenhum investimento ainda.<br>Toque em <b>Comprei</b> para lançar o primeiro: ações, FIIs, renda fixa, cripto…</div></div>';
+  var cls=ICLI.map(function(c){var l=ps.filter(function(x){return x.a.cls===c[0]});return{c:c,l:l,v:r2(l.reduce(function(s,x){return s+x.p.val},0))}}).filter(function(g){return g.l.length}).sort(function(a,b){return b.v-a.v});
+  cls.forEach(function(g){var pc=tot>0?Math.round(g.v/tot*100):0;
+    h+='<div class="lbl"><span>'+g.c[1]+' '+g.c[2]+' · '+fmt(g.v)+' · '+pc+'%</span></div><div class="card p0">';
+    g.l.sort(function(a,b){return b.p.val-a.p.val}).forEach(function(x){var p=x.p;
+      h+='<button class="row" data-act="inva" data-id="'+x.a.id+'"><div class="mid"><div class="t"><span>'+esc(x.a.name)+'</span><span class="v">'+fmt(p.val)+'</span></div><div class="sub">'+(p.q?fq(p.q)+' un. · pagou em média '+fmt(p.pm):'vendeu tudo')+(p.provY?' · recebeu '+fmt(p.provY):'')+'</div></div><span style="color:var(--mute)">›</span></button>'});
+    h+='</div>'});
+  var pr=I.ops.filter(function(o){return o.k==='P'&&ids[o.aid]&&o.d.slice(0,4)===y}),M=[],mx=1,i;
+  for(i=0;i<12;i++)M.push(0);
+  pr.forEach(function(o){M[+o.d.slice(5,7)-1]+=o.v});M.forEach(function(v){mx=Math.max(mx,v)});
+  h+='<div class="lbl"><span>O que você recebeu em '+y+' · '+fmt(provY)+'</span></div>';
+  if(pr.length){
+    h+='<div class="card"><div class="chart" style="height:90px;margin-top:0">';
+    for(i=0;i<12;i++)h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end"><div class="bb"><i style="height:'+(M[i]/mx*100)+'%"></i></div><small>'+MES[i].slice(0,1)+'</small></div>';
+    h+='</div></div><div class="card p0">';
+    pr.sort(function(a,b){return a.d<b.d?1:-1}).slice(0,8).forEach(function(o){h+=opRow(o,true)});h+='</div>'}
+  else h+='<p class="hint">Nada ainda. Quando cair dividendo ou rendimento, toque em <b>Recebi</b>.</p>';
+  return h+'<p class="hint">O app não busca cotações: mostra quanto você colocou. Para ver o valor de hoje, abra o ativo e informe o preço atual em “Mais opções”.</p>';
+}
+function opLab(o,m){return o.k==='C'?(m?'Guardou':'Comprou'):o.k==='V'?(m?'Resgatou':'Vendeu'):(m?'Rendeu':(o.pk||'Provento'))}
+function opRow(o,withName){
+  var a=asset(o.aid)||{name:'?'},m=isM(a),lab=opLab(o,m),out=o.k==='V'&&m;
+  return '<button class="row" data-act="invop" data-id="'+o.id+'"><div class="mid"><div class="t"><span>'+(withName?esc(a.name):lab)+'</span><span class="v '+(out?'neg':o.k==='P'||(m&&o.k==='C')?'pos':'')+'">'+(out?'− ':o.k==='P'||(m&&o.k==='C')?'+ ':'')+fmt(o.v)+'</span></div><div class="sub">'+dBR(o.d)+(withName?' · '+lab:'')+(o.k!=='P'&&!m?' · '+fq(o.q)+' un. a '+fmt(o.q?o.v/o.q:0):'')+'</div></div></button>';
+}
+function invAsset(){
+  var a=asset(IA);if(!a){closeM();return}
+  var m=isM(a),p=pos(a),ops=INV().ops.filter(function(o){return o.aid===a.id}).sort(function(x,z){return x.d<z.d?1:-1}),h;
+  if(m){
+    h='<div class="hd"><h1>'+(a.emo||'🐷')+' '+esc(a.name)+'</h1><button class="ic" data-act="close" aria-label="Fechar">✕</button></div>'+
+    '<div class="card hero"><small>Saldo da caixinha</small><div class="big">'+fmt(p.val)+'</div><div class="split"><div>Já guardou<b>'+fmt(p.dep)+'</b></div><div>Já resgatou<b>'+fmt(p.saq)+'</b></div></div><div class="ft">'+(p.saq?'Houve resgate: '+fmt(p.saq)+' no total':'Nenhum resgate até agora')+(p.prov?' · rendeu '+fmt(p.prov):'')+'</div></div>'+
+    (a.goal>0?'<div class="card" style="padding-top:6px">'+goalBar(a,p)+'</div>':'')+
+    big3([['C','⬇️','Guardar'],['V','⬆️','Resgatar'],['P','✨','Rendeu']],a.id)+
+    '<div class="lbl"><span>Histórico ('+ops.length+')</span></div><div class="card p0">';
+    if(!ops.length)h+='<div class="empty">Caixinha vazia. Toque em <b>Guardar</b> para começar.</div>';
+    ops.forEach(function(o){h+=opRow(o,false)});
+    openM(h+'</div><button class="btn sec" data-act="boxedit">Editar nome, símbolo ou meta</button><button class="btn del" data-act="invdel">Excluir caixinha</button>');
+    return;
+  }
+  h='<div class="hd"><h1>'+esc(a.name)+'</h1><button class="ic" data-act="close" aria-label="Fechar">✕</button></div>'+
+  '<div class="card hero"><small>'+icl(a.cls)[2]+' · '+(a.px>0?'valor de hoje':'quanto você colocou')+'</small><div class="big">'+fmt(p.val)+'</div><div class="split"><div>Quantidade<b>'+fq(p.q)+'</b></div><div>Pagou em média<b>'+fmt(p.pm)+'</b></div></div><div class="ft">Colocou '+fmt(p.cost)+' · recebeu '+fmt(p.prov)+' em proventos'+(p.real?' · resultado de vendas '+fmt(p.real):'')+'</div></div>'+
+  big3([['C','🛒','Comprei'],['V','💵','Vendi'],['P','✨','Recebi']],a.id)+
+  '<div class="card p0" style="margin-top:12px"><div class="field"><b>Nome ou código</b><input type="text" id="ia-name" value="'+esc(a.name)+'"></div>'+
+  '<div class="field"><b>Tipo</b><select id="ia-cls">'+ICLI.map(function(c){return '<option value="'+c[0]+'"'+(a.cls===c[0]?' selected':'')+'>'+c[1]+' '+c[2]+'</option>'}).join('')+'</select></div></div>'+
+  '<details class="more"><summary>Mais opções</summary><div class="card p0"><div class="field"><b>Preço atual<small>de cada unidade, para ver o valor de hoje</small></b><input class="inp" id="ia-px" inputmode="decimal" placeholder="—" value="'+(a.px>0?num(a.px):'')+'" style="width:120px"></div>'+
+  (PP().length>1?'<div class="field"><b>De quem é<small>para o imposto de renda</small></b><select id="ia-who">'+whoOpts(a.who||'E')+'</select></div>':'')+'</div></details>'+
+  '<div class="lbl"><span>Histórico ('+ops.length+')</span></div><div class="card p0">';
+  if(!ops.length)h+='<div class="empty">Nada lançado ainda.</div>';
+  ops.forEach(function(o){h+=opRow(o,false)});
+  openM(h+'</div><button class="btn del" data-act="invdel">Excluir este investimento</button>');
+}
+function boxForm(){
+  var f=CF,h='<div class="hd"><h1>'+(f.id?'Editar caixinha':'Nova caixinha')+'</h1><button class="ic" data-act="close" aria-label="Fechar">✕</button></div>'+
+  '<div class="card p0"><div class="field"><b>Nome</b><input type="text" id="cf-name" placeholder="ex.: Casa, Viagem" value="'+esc(f.name)+'"></div></div>'+
+  '<div class="lbl"><span>Escolha um símbolo</span></div><div class="grid" style="grid-template-columns:repeat(6,1fr)">'+EMO.map(function(e){return '<button data-act="cfemo" data-v="'+e+'" class="'+(f.emo===e?'on':'')+'" style="padding:10px 0"><span style="font-size:24px">'+e+'</span></button>'}).join('')+'</div>'+
+  '<div class="card p0" style="margin-top:14px"><div class="field"><b>Meta<small>opcional: quanto quer juntar</small></b><input class="inp" id="cf-goal" inputmode="decimal" placeholder="sem meta" value="'+esc(f.goal)+'" style="width:130px"></div></div>';
+  openM(h+'<button class="btn" data-act="cfsave">'+(f.id?'Salvar':'Criar caixinha')+'</button>');
+}
+function grabCF(){['name','goal'].forEach(function(k){var e=document.getElementById('cf-'+k);if(e)CF[k]=e.value})}
+function fMoney(f){return f.aid==='new'?false:isM(asset(f.aid))}
+function invForm(){
+  var f=IF,I=INV(),isP=f.k==='P',m=fMoney(f),a=f.aid!=='new'?asset(f.aid):null;
+  var title=f.id?'Editar':m?(f.k==='C'?'Guardar':f.k==='V'?'Resgatar':'Rendimento'):(f.k==='C'?'Comprei':f.k==='V'?'Vendi':'Recebi');
+  var ask=m?(f.k==='C'?'Quanto você guardou?':f.k==='V'?'Quanto você resgatou?':'Quanto rendeu?'):(f.k==='C'?'Quanto pagou no total?':f.k==='V'?'Quanto recebeu pela venda?':'Quanto caiu na sua conta?');
+  var h='<div class="hd"><h1>'+title+'</h1><button class="ic" data-act="close" aria-label="Fechar">✕</button></div>'+
+  '<p style="text-align:center;font-size:17px;font-weight:600;margin-top:8px">'+ask+'</p><div class="amount"><span>R$</span><input id="if-v" inputmode="decimal" placeholder="0,00" value="'+esc(f.v)+'" aria-label="Valor"></div><div class="card p0">';
+  if(m||f.fixed)h+='<div class="field"><b>'+(m?'Caixinha':'Investimento')+'</b><span>'+(m?(a.emo||'🐷')+' ':'')+esc(a.name)+'</span></div>';
+  else{var opts=I.assets.filter(function(x){return !isM(x)}).sort(function(x,z){return x.name<z.name?-1:1});
+    h+='<div class="field"><b>Qual investimento?</b><select id="if-aid">'+opts.map(function(x){return '<option value="'+x.id+'"'+(f.aid===x.id?' selected':'')+'>'+esc(x.name)+'</option>'}).join('')+(f.k==='C'?'<option value="new"'+(f.aid==='new'?' selected':'')+'>➕ Um novo…</option>':'')+'</select></div>';
+    if(f.aid==='new')h+='<div class="field"><b>Nome ou código</b><input type="text" id="if-nn" placeholder="ex.: MXRF11, CDB Banco X" value="'+esc(f.nn)+'"></div><div class="field"><b>Tipo</b><select id="if-nc">'+ICLI.map(function(c){return '<option value="'+c[0]+'"'+(f.nc===c[0]?' selected':'')+'>'+c[1]+' '+c[2]+'</option>'}).join('')+'</select></div>'}
+  if(m&&f.k==='V')h+='<div class="field"><b>Disponível</b><span>'+fmt(pos(a).val+(f.id&&f.k0==='V'?f.v0:0))+'</span></div>';
+  h+='<div class="field"><b>Quando?</b><input type="date" id="if-d" value="'+f.d+'"></div>';
+  if(!isP&&!m)h+='<div class="field"><b>Quantas unidades?<small>cotas ou ações; em renda fixa, use 1</small></b><input class="inp" id="if-q" inputmode="decimal" value="'+esc(f.q)+'" style="width:110px"></div>';
+  if(isP&&!m)h+='<div class="field"><b>O que foi?</b><select id="if-pk">'+PK.map(function(k){return '<option'+(f.pk===k?' selected':'')+'>'+k+'</option>'}).join('')+'</select></div>';
+  if(!f.id&&m&&!isP)h+='<div class="field"><b>'+(f.k==='C'?'Descontar do orçamento':'Somar ao orçamento')+'<small>'+(f.k==='C'?'entra como despesa do mês':'entra como receita do mês')+'</small></b><button class="tog'+(f.rec?' on':'')+'" data-act="ifrec" aria-label="Lançar no orçamento"></button></div>';
+  h+='</div>';
+  if(!f.id&&!m&&isP)h+='<details class="more"'+(f.rec?' open':'')+'><summary>Mais opções</summary><div class="card p0"><div class="field"><b>Somar ao orçamento<small>entra como receita do mês</small></b><button class="tog'+(f.rec?' on':'')+'" data-act="ifrec" aria-label="Lançar no orçamento"></button></div></div></details>';
+  openM(h+'<button class="btn" data-act="ifsave">Salvar</button>'+(f.id?'<button class="btn del" data-act="ifdel">Excluir este lançamento</button>':''));
+}
+function grabIF(){['v','aid','nn','nc','d','q','pk'].forEach(function(k){var e=document.getElementById('if-'+k);if(e)IF[k]=e.value})}
+function invSave(){
+  grabIF();var f=IF,I=INV(),v=parseBR(f.v),a,q=0,m=fMoney(f);
+  if(!(v>0)){toast('Digite o valor');return}
+  if(!f.d){toast('Escolha a data');return}
+  if(f.aid==='new'){if(!f.nn.trim()){toast('Dê um nome ao investimento');return}}
+  else if(!asset(f.aid)){toast('Escolha o investimento');return}
+  if(f.k!=='P'&&!m){q=parseQ(f.q);if(!(q>0)){toast('Digite quantas unidades');return}}
+  if(f.k==='V'){var old=f.id&&f.k0==='V';
+    if(m){var bal=pos(asset(f.aid)).val+(old?f.v0:0);if(v>bal+0.004){toast('Só há '+fmt(bal)+' nesta caixinha');return}}
+    else{var have=pos(asset(f.aid)).q+(old?f.q0:0);if(q>have+1e-9){toast('Você tem só '+fq(have)+' un. deste investimento');return}}}
+  if(f.aid==='new'){a={id:uid(),cls:f.nc,name:f.nn.trim(),px:0,who:'E'};I.assets.push(a)}else a=asset(f.aid);
+  var o=f.id?I.ops.filter(function(x){return x.id===f.id})[0]:null;
+  if(!o){o={id:uid()};I.ops.push(o)}
+  o.aid=a.id;o.k=f.k;o.d=f.d;o.v=v;o.q=q;if(f.k==='P')o.pk=m?'Rendimento':(f.pk||PK[0]);else delete o.pk;
+  if(!f.id&&f.rec){
+    if(f.k==='P'&&!m)S.tx.push({id:uid(),d:f.d,t:'R',desc:o.pk+' '+a.name,cat:'extra',v:v,src:'',pid:''});
+    else if(m&&f.k==='V')S.tx.push({id:uid(),d:f.d,t:'R',desc:'Resgate '+a.name,cat:'extra',v:v,src:'',pid:''});
+    else if(m&&f.k==='C')S.tx.push({id:uid(),d:f.d,t:'D',desc:'Guardado em '+a.name,cat:CAT.outros?'outros':CD[0][0],v:v,src:'',pid:'',ir:'x'})}
+  save();IF=null;if(IA&&asset(IA))invAsset();else closeM();
+  toast(m?(f.k==='C'?'Guardado!':f.k==='V'?'Resgate anotado':'Rendimento anotado'):f.k==='C'?'Compra anotada':f.k==='V'?'Venda anotada':'Recebimento anotado');
+}
+function irInv(y){
+  var I=INV(),as=I.assets.filter(function(a){return (a.who||'E')===irWho}),end=y+'-12-31',h='',tot=0,rows='';
+  if(!as.length)return '';
+  as.forEach(function(a){var p=pos(a,end),m=isM(a),val=m?p.val:p.cost;if(p.q>0){tot+=val;rows+='<div class="row"><div class="em">'+icl(a.cls)[1]+'</div><div class="mid"><div class="t"><span>'+esc(a.name)+'</span><span class="v">'+fmt(val)+'</span></div><div class="sub">'+(m?'saldo em 31/12/'+y:fq(p.q)+' un. · custo de aquisição em 31/12/'+y)+'</div></div></div>'}});
+  h+='<div class="lbl"><span>💰 Poupança e investimentos · '+fmt(r2(tot))+'</span></div><div class="card p0">'+(rows||'<div class="empty">Sem posição em 31/12/'+y+'.</div>');
+  var ids={};as.forEach(function(a){ids[a.id]=1});var bt={};
+  I.ops.forEach(function(o){if(o.k==='P'&&ids[o.aid]&&o.d.slice(0,4)===y){var k=o.pk||'Outros';bt[k]=r2((bt[k]||0)+o.v)}});
+  Object.keys(bt).forEach(function(k){h+='<div class="row"><div class="mid"><div class="t"><span>'+k+' recebido em '+y+'</span><span class="v pos">'+fmt(bt[k])+'</span></div></div></div>'});
+  return h+'</div><p class="hint"><b>Bens e Direitos.</b> Cada ativo é declarado pelo custo de aquisição, não pelo valor de mercado; poupança e contas, pelo saldo em 31/12. Em geral, dividendos e rendimentos de FII vão em Rendimentos Isentos e JCP em Tributação Exclusiva; use os valores do informe da corretora. Vendas com lucro podem gerar imposto próprio, que este app não calcula.</p>';
+}
+var _ext=extClick;
+extClick=function(a,el,id,v){
+  switch(a){
+    case 'invview':invView=v;render();return true;
+    case 'boxnew':CF={name:'',emo:EMO[0],goal:''};boxForm();return true;
+    case 'boxedit':var b=asset(IA);if(b){CF={id:b.id,name:b.name,emo:b.emo||'🐷',goal:b.goal>0?num(b.goal):''};boxForm()}return true;
+    case 'cfemo':grabCF();CF.emo=v;boxForm();return true;
+    case 'cfsave':grabCF();if(!CF.name.trim()){toast('Dê um nome para a caixinha');return true}
+      var g=parseBR(CF.goal),bx=CF.id?asset(CF.id):null;
+      if(!bx){bx={id:uid(),cls:'poup',px:0,who:'E'};INV().assets.push(bx)}
+      bx.name=CF.name.trim();bx.emo=CF.emo;bx.goal=g>0?g:0;var isNew=!CF.id;CF=null;save();IA=bx.id;invAsset();toast(isNew?'Caixinha criada. Toque em Guardar para começar':'Caixinha atualizada');return true;
+    case 'invnew':var fixed=!!(id&&asset(id)),list=INV().assets.filter(function(x){return !isM(x)});
+      if(!fixed&&v!=='C'&&!list.length){toast('Lance primeiro uma compra em “Comprei”');return true}
+      IF={k:v,v:'',aid:fixed?id:(list[0]?list[0].id:'new'),fixed:fixed,nn:'',nc:'acoes',d:today(),q:'',pk:PK[0],rec:false};
+      if(fixed&&v==='V'&&!isM(asset(id))&&!(pos(asset(id)).q>0)){IF=null;toast('Você não tem unidades para vender');return true}
+      invForm();return true;
+    case 'inva':IA=id;invAsset();return true;
+    case 'invop':var o=INV().ops.filter(function(x){return x.id===id})[0];if(!o)return true;IF={id:o.id,k:o.k,k0:o.k,q0:o.q||0,v0:o.v,v:num(o.v),aid:o.aid,fixed:true,nn:'',nc:'acoes',d:o.d,q:o.q?fq(o.q):'',pk:o.pk||PK[0],rec:false};invForm();return true;
+    case 'ifrec':grabIF();IF.rec=!IF.rec;invForm();return true;
+    case 'ifsave':invSave();return true;
+    case 'ifdel':if(sure('o'+IF.id,'Toque de novo para excluir')){INV().ops=INV().ops.filter(function(x){return x.id!==IF.id});save();IF=null;if(IA&&asset(IA))invAsset();else closeM();toast('Lançamento excluído')}return true;
+    case 'invdel':if(sure('a'+IA,'Toque de novo para excluir tudo disto')){var I2=INV();I2.ops=I2.ops.filter(function(x){return x.aid!==IA});I2.assets=I2.assets.filter(function(x){return x.id!==IA});IA=null;save();closeM();toast('Excluído')}return true;
+    case 'close':if((IF||CF)&&IA&&asset(IA)){IF=null;CF=null;invAsset();return true}IF=null;CF=null;IA=null;break;
+  }
+  return _ext(a,el,id,v);
+};
+document.addEventListener('change',function(ev){
+  var e=ev.target;
+  if(e.id==='if-aid'){grabIF();invForm();return}
+  if(/^ia-/.test(e.id)&&IA){var a=asset(IA);if(!a)return;
+    if(e.id==='ia-name'){if(e.value.trim())a.name=e.value.trim()}
+    else if(e.id==='ia-cls')a.cls=e.value;
+    else if(e.id==='ia-px')a.px=parseQ(e.value);
+    else if(e.id==='ia-who')a.who=e.value;
+    save();if(e.id==='ia-px'||e.id==='ia-name')invAsset()}
 });
 
 load();if(!S.cfg)S.cfg=defCfg();applyCfg();save();render();if(!S.cfg.setup)setupForm(true);
