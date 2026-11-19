@@ -149,6 +149,34 @@ input,select,textarea,.desc,.search,.sel,.fin,.fld{font-size:16px!important}
 .sheet .grab{width:48px;height:5px;margin:0 auto 14px;position:relative}
 .sheet .grab:before{content:'';position:absolute;left:-60px;right:-60px;top:-14px;bottom:-14px}
 .sheet.drag{transition:none}
+.frm .seg button{padding:7px}
+.frm .fq{margin:8px 0 0}
+.frm .amt{font-size:38px;margin:8px 0 0;line-height:1.15}
+.frm .desc{margin-bottom:6px;padding:3px}
+.frm .cats{margin-bottom:8px;gap:8px}
+.frm .cat{width:54px;font-size:10.5px}
+.frm .cat .ic{width:42px;height:42px;border-radius:14px;font-size:20px;margin-bottom:3px}
+.frm .chips{margin-bottom:8px}
+.frm .chip{padding:7px 12px}
+.opts{display:flex;gap:6px;align-items:center}
+.pill2{position:relative;display:flex;align-items:center;gap:2px;background:#F1F3F5;border-radius:12px;padding:0 10px;height:36px;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;flex:none}
+.pill2 input[type=date]{position:absolute;inset:0;opacity:0;width:100%}
+.pill2 select{border:0;background:none;font:inherit;font-size:13px!important;font-weight:700;color:var(--ink);-webkit-appearance:none;appearance:none;padding:0;outline:0}
+.opts .step{margin-left:auto;height:36px;background:#F1F3F5;border:0}
+.opts .step button{width:32px;height:36px}
+.optx{font-size:11.5px;color:var(--mute);margin:5px 2px 8px;min-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frm .keys{gap:6px}
+.frm .keys button{padding:9px 0;font-size:20px;border-radius:13px}
+.frm .save{margin-top:8px;padding:13px}
+.sheet{max-height:94%}
+.rv{text-align:right;flex:none}.rv b{display:block;font-size:15px;font-variant-numeric:tabular-nums}.rv small{color:var(--mute);font-size:12px;font-variant-numeric:tabular-nums}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.acts button{background:var(--card);border-radius:16px;padding:10px 4px;font-size:12px;font-weight:600;color:var(--ink2);text-align:center;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.sheet .acts button{background:#F6F7F9;box-shadow:none}
+.acts span{display:block;font-size:20px;margin-bottom:2px}
+.hd .chip{flex:none}
+.sec button{color:var(--pri);font-weight:600;font-size:13.5px}
+@media(max-height:700px){.frm .amt{font-size:32px;margin-top:4px}.frm .cat .ic{width:36px;height:36px;font-size:17px}.frm .keys button{padding:7px 0;font-size:19px}.frm .save{padding:11px}.sheet{max-height:97%}}
 </style>
 </head>
 <body>
@@ -428,19 +456,20 @@ function typedVal(){return F.v?r2(parseFloat(F.v.replace(/\./g,'').replace(',','
 function parcTxt(){var v=typedVal();return F.n>1?F.n+'x de '+money(r2(v/F.n))+(v?' (total '+money(v)+')':''):'à vista'}
 function fmtTyped(v){if(!v)return '0,00';var p=v.split(','),i=(+p[0]||0).toLocaleString('pt-BR');return i+(p.length>1?','+p[1]:'')}
 function addForm(){
-  var f=F,cats=f.t==='D'?CFG().cats:RCATS;
-  var h='<div class="seg"><button data-act="ft" data-v="D" class="'+(f.t==='D'?'on':'')+'">Gasto</button><button data-act="ft" data-v="R" class="'+(f.t==='R'?'on':'')+'">Entrada</button></div>';
-  if(!f.id&&f.t==='D'){FQ=freq();if(FQ.length)h+='<div class="chips" style="margin:10px 0 0">'+FQ.map(function(t,i){return '<button class="chip" data-act="fq" data-i="'+i+'">'+CAT(t.cat)[0]+' '+esc(t.desc.slice(0,16))+' · '+num(t.v)+'</button>'}).join('')+'</div>'}
+  var f=F,cats=f.t==='D'?CFG().cats:RCATS,cc=f.t==='D'&&isCard(f.src);
+  var h='<div class="frm"><div class="seg"><button data-act="ft" data-v="D" class="'+(f.t==='D'?'on':'')+'">Gasto</button><button data-act="ft" data-v="R" class="'+(f.t==='R'?'on':'')+'">Entrada</button></div>';
+  if(!f.id&&f.t==='D'){FQ=freq();if(FQ.length)h+='<div class="chips fq">'+FQ.map(function(t,i){return '<button class="chip" data-act="fq" data-i="'+i+'">'+CAT(t.cat)[0]+' '+esc(t.desc.slice(0,16))+' · '+num(t.v)+'</button>'}).join('')+'</div>'}
   h+='<div class="amt'+(f.v?'':' zero')+'" id="amt"><small>R$</small>'+fmtTyped(f.v)+'</div>'+
   '<input class="desc" id="fdesc" placeholder="'+esc(CAT(f.cat)[1])+' · toque para descrever" value="'+esc(f.desc)+'" autocomplete="off">'+
   '<div class="cats">'+cats.map(function(c){var x=CAT(c[0]);return '<button class="cat'+(f.cat===c[0]?' on':'')+'" data-act="fc" data-v="'+c[0]+'"><div class="ic" style="background:'+x[2]+'">'+x[0]+'</div>'+esc(x[1])+'</button>'}).join('')+'</div>';
   if(f.t==='D')h+='<div class="chips">'+CFG().srcs.map(function(k){return '<button class="chip'+(f.src===k?' on':'')+'" data-act="fs" data-v="'+esc(k)+'">'+SRC(k)[0]+' '+esc(SRC(k)[1])+'</button>'}).join('')+'</div>';
-  var yd=new Date(today.getTime()-864e5),YD=yd.getFullYear()+'-'+pad(yd.getMonth()+1)+'-'+pad(yd.getDate()),other=f.d!==TODAY&&f.d!==YD;
-  h+='<div class="chips"><button class="chip'+(f.d===TODAY?' on':'')+'" data-act="fd" data-v="'+TODAY+'">📅 Hoje</button><button class="chip'+(f.d===YD?' on':'')+'" data-act="fd" data-v="'+YD+'">📅 Ontem</button><label class="chip'+(other?' on':'')+'" style="position:relative">📅 '+(other?dBr(f.d)+'/'+f.d.slice(2,4):'Outra data')+'<input type="date" id="fdate" value="'+f.d+'" style="position:absolute;inset:0;opacity:0"></label></div>';
-  var au=f.t==='D'&&isCard(f.src)?refOf(f.src,f.d):f.d.slice(0,7),ref=f.mo||au,opts=[-1,0,1,2].map(function(k){return addM(au,k)});
-  h+='<div class="info"><div class="irow"><div>'+(f.t==='D'&&isCard(f.src)?'💳 Fatura de <b>'+mLabel(ref)+'</b><small>'+(f.mo?'escolhido por você':'compras até dia '+card(f.src).close+' entram na fatura do mês')+' · vence '+dBr(dueOf(f.src,ref))+'</small>':'Conta no mês de <b>'+mLabel(ref)+'</b><small>'+(f.mo?'escolhido por você':'pela data do lançamento')+'</small>')+'</div><select class="sel" id="fmo" aria-label="Mês">'+opts.map(function(o){return '<option value="'+(o===au?'':o)+'"'+(o===ref?' selected':'')+'>'+mLabel(o)+(o===au?' (auto)':'')+'</option>'}).join('')+'</select></div>'+
-    (f.id||f.t!=='D'?'':'<div class="irow"><div>Parcelas<small id="parc">'+parcTxt()+'</small></div><div class="step"><button data-act="pn" data-v="-1" aria-label="Menos">−</button><b>'+f.n+'x</b><button data-act="pn" data-v="1" aria-label="Mais">+</button></div></div>')+'</div>';
-  h+='<div class="keys">'+['1','2','3','4','5','6','7','8','9',',','0','⌫'].map(function(k){return '<button data-act="key" data-v="'+k+'">'+k+'</button>'}).join('')+'</div><button class="save" data-act="savetx"'+(typedVal()>0?'':' disabled')+'>Salvar</button>';
+  var yd=new Date(today.getTime()-864e5),YD=yd.getFullYear()+'-'+pad(yd.getMonth()+1)+'-'+pad(yd.getDate());
+  var au=cc?refOf(f.src,f.d):f.d.slice(0,7),ref=f.mo||au,opts=[-1,0,1,2].map(function(k){return addM(au,k)});
+  h+='<div class="opts"><label class="pill2">📅 '+(f.d===TODAY?'Hoje':f.d===YD?'Ontem':dBr(f.d)+'/'+f.d.slice(2,4))+'<input type="date" id="fdate" value="'+f.d+'"></label>'+
+    '<label class="pill2">'+(cc?'💳 Fatura ':'🗓 ')+'<select id="fmo" aria-label="Mês">'+opts.map(function(o){return '<option value="'+(o===au?'':o)+'"'+(o===ref?' selected':'')+'>'+MES[+o.slice(5,7)-1].slice(0,3)+'/'+o.slice(2,4)+'</option>'}).join('')+'</select> ▾</label>'+
+    (f.id||f.t!=='D'?'':'<div class="step"><button data-act="pn" data-v="-1" aria-label="Menos parcelas">−</button><b>'+f.n+'x</b><button data-act="pn" data-v="1" aria-label="Mais parcelas">+</button></div>')+'</div>'+
+    '<div class="optx"><span id="parc">'+(f.t==='D'&&!f.id?parcTxt():'')+'</span>'+(cc?(f.t==='D'&&!f.id?' · ':'')+(f.mo?'fatura escolhida por você':'fecha dia '+card(f.src).close)+' · vence '+dBr(dueOf(f.src,ref)):(f.mo?(f.t==='D'&&!f.id?' · ':'')+'mês escolhido por você':''))+'</div>';
+  h+='<div class="keys">'+['1','2','3','4','5','6','7','8','9',',','0','⌫'].map(function(k){return '<button data-act="key" data-v="'+k+'">'+k+'</button>'}).join('')+'</div><button class="save" data-act="savetx"'+(typedVal()>0?'':' disabled')+'>Salvar</button></div>';
   openSheet(h);
 }
 function grabDesc(){var e=document.getElementById('fdesc');if(e&&F)F.desc=e.value}
@@ -572,26 +601,30 @@ function acCost(id){var brl=0,amt=0;vals(DB.am).forEach(function(m){if(m.ac===id
 function ownerName(o){return memberName(o)||o||'Sem dono'}
 function intlSummary(own){var by={},brl=0,miss=0;vals(DB.ac).forEach(function(a){if(own&&a.owner!==own)return;var b=acBal(a.id);by[a.cur]=r2((by[a.cur]||0)+b);var r=rateOf(a.cur);if(r)brl+=b*r;else if(b)miss=1});return{by:by,brl:r2(brl),miss:miss}}
 function vIntl(){
-  var s=intlSummary(IOWN),acs=vals(DB.ac).filter(function(a){return !IOWN||a.owner===IOWN}).sort(function(a,b){return ownerName(a.owner).localeCompare(ownerName(b.owner))||a.name.localeCompare(b.name)});
-  var h='<div class="hd"><div class="hi"><small><button class="link" style="padding:0" data-tab="mais">‹ Mais</button></small><b>Contas internacionais</b></div></div>';
-  h+='<div class="hero" style="background:radial-gradient(120% 140% at 100% 0%,#34D399 0%,#047857 55%,#064E3B 100%);box-shadow:0 12px 24px rgba(4,120,87,.25)"><small>'+(IOWN?'Saldo de '+esc(ownerName(IOWN)):'Saldo total no exterior')+' em reais</small><div class="big">'+money(s.brl)+'</div><div class="io">'+(Object.keys(s.by).length?Object.keys(s.by).map(function(c){return '<div>'+(CURS[c]||['💱'])[0]+' '+esc(c)+'<b>'+fmtCur(s.by[c],c)+'</b></div>'}).join(''):'<div>Nenhuma conta ainda<b>Toque em “+ Nova conta”</b></div>')+'</div>'+(s.miss?'<div class="note">Algumas moedas estão sem cotação. Ajuste em “Cotações”.</div>':'')+'</div>';
-  var owners={};vals(DB.ac).forEach(function(a){owners[a.owner]=1});MEMBERS.forEach(function(m){owners[m.user_id]=1});
-  h+='<div class="chips">'+[''].concat(Object.keys(owners)).map(function(o){return '<button class="chip'+(IOWN===o?' on':'')+'" data-act="iown" data-v="'+esc(o)+'">'+(o?'👤 '+esc(ownerName(o)):'Todos')+'</button>'}).join('')+'</div>';
-  if(!acs.length)h+='<div class="card"><div class="empty">Nenhuma conta '+(IOWN?'de '+esc(ownerName(IOWN)):'cadastrada')+'.<br>Cadastre a conta (ex.: Wise, Nomad, Inter Global) e lance o saldo atual.</div></div>';
-  acs.forEach(function(a){var b=acBal(a.id),r=rateOf(a.cur),c=acCost(a.id),C=CURS[a.cur]||['💱',a.cur,a.cur];
-    h+='<button class="card it" style="padding:14px;margin-bottom:10px;width:100%" data-act="acopen" data-id="'+esc(a.id)+'"><div class="ic" style="background:#ECFDF5">'+C[0]+'</div><div class="mid"><b>'+esc(a.name)+'</b><small>'+esc(ownerName(a.owner))+' · '+esc(C[2])+(c?' · custo médio R$ '+num(c):'')+'</small></div><div style="text-align:right"><div class="val">'+fmtCur(b,a.cur)+'</div><small style="color:var(--mute);font-size:12px">'+(r?'≈ '+money(b*r):'sem cotação')+'</small></div></button>'});
+  var s=intlSummary(IOWN),all=vals(DB.ac),acs=all.filter(function(a){return !IOWN||a.owner===IOWN}).sort(function(a,b){return ownerName(a.owner).localeCompare(ownerName(b.owner))||a.name.localeCompare(b.name)});
+  var h='<div class="hd"><div class="hi"><small><button class="link" style="padding:0;margin:0" data-tab="mais">‹ Mais</button></small><b>Internacional</b></div><button class="chip" data-act="rates">💱 Cotações</button></div>';
+  var curs=Object.keys(s.by);
+  h+='<div class="hero" style="padding:18px;background:radial-gradient(120% 140% at 100% 0%,#34D399 0%,#047857 55%,#064E3B 100%);box-shadow:0 12px 24px rgba(4,120,87,.22)"><small>'+(IOWN?'Saldo de '+esc(ownerName(IOWN)):'Saldo no exterior')+' em reais</small><div class="big" style="font-size:34px;margin:0">'+money(s.brl)+'</div>'+
+    (curs.length?'<div class="io" style="margin-top:12px">'+curs.map(function(c){return '<div>'+(CURS[c]||['💱'])[0]+' '+esc(c)+'<b>'+fmtCur(s.by[c],c)+'</b></div>'}).join('')+'</div>':'')+(s.miss?'<div class="note">Há moeda sem cotação. Toque em 💱 Cotações.</div>':'')+'</div>';
+  var owners={};all.forEach(function(a){owners[a.owner]=1});MEMBERS.forEach(function(m){owners[m.user_id]=1});
+  h+='<div class="chips" style="margin:14px 0 4px">'+[''].concat(Object.keys(owners)).map(function(o){return '<button class="chip'+(IOWN===o?' on':'')+'" data-act="iown" data-v="'+esc(o)+'">'+(o?esc(ownerName(o)):'Todos')+'</button>'}).join('')+'</div>';
+  h+='<div class="sec"><b>Contas</b><button data-act="newac">+ Nova conta</button></div><div class="card">';
+  if(!acs.length)h+='<div class="empty">Nenhuma conta '+(IOWN?'de '+esc(ownerName(IOWN)):'ainda')+'.<br>Toque em “+ Nova conta” (ex.: Wise, Nomad).</div>';
+  acs.forEach(function(a){var b=acBal(a.id),r=rateOf(a.cur),C=CURS[a.cur]||['💱',a.cur,a.cur];
+    h+='<button class="it" data-act="acopen" data-id="'+esc(a.id)+'"><div class="ic" style="background:#ECFDF5">'+C[0]+'</div><div class="mid"><b>'+esc(a.name)+'</b><small>'+esc(ownerName(a.owner))+' · '+esc(C[2])+'</small></div><div class="rv"><b>'+fmtCur(b,a.cur)+'</b><small>'+(r?'≈ '+money(b*r):'sem cotação')+'</small></div></button>'});
+  h+='</div>';
+  if(all.length)h+='<div class="acts" style="margin-top:12px">'+[['dep','Envio'],['gas','Gasto'],['aj','Ajustar saldo']].map(function(x){return '<button data-act="newam" data-v="'+x[0]+'"><span>'+ATYPES[x[0]][1]+'</span>'+x[1]+'</button>'}).join('')+'</div>';
   var ms=vals(DB.am).filter(function(m){var a=DB.ac[m.ac];return a&&(!IOWN||a.owner===IOWN)}).sort(function(a,b){return a.d<b.d?1:a.d>b.d?-1:(b.ts||0)-(a.ts||0)}).slice(0,15);
   if(ms.length){h+='<div class="sec"><b>Últimas movimentações</b></div><div class="card">';ms.forEach(function(m){h+=amRow(m,true)});h+='</div>'}
-  h+='<div class="chips" style="margin-top:12px"><button class="chip on" data-act="newac">+ Nova conta</button>'+(vals(DB.ac).length?'<button class="chip" data-act="newam">+ Movimentação</button>':'')+'<button class="chip" data-act="rates">💱 Cotações</button></div>';
-  return h+'<p class="hint">Cada conta tem um dono (você ou a Gabi). Os dois enxergam todas as contas da casa; use os botões acima para ver só as de um de vocês. Por enquanto, os valores daqui não entram no saldo do mês.</p>';
+  return h+'<p class="hint">Os dois veem todas as contas da casa; os botões de nome só filtram a tela. Estes valores ainda não entram no saldo do mês.</p>';
 }
 function amRow(m,showAc){var a=DB.ac[m.ac],T=ATYPES[m.type],sg=T[2];
   return '<button class="it" data-act="editam" data-id="'+esc(m.id)+'"><div class="ic" style="background:#ECFDF5">'+T[1]+'</div><div class="mid"><b>'+esc(m.desc||T[0])+'</b><small>'+dBr(m.d)+'/'+m.d.slice(2,4)+(showAc&&a?' · '+esc(a.name)+' ('+esc(ownerName(a.owner))+')':'')+(m.type==='dep'&&m.brl?' · R$ '+num(m.brl)+' = '+num(m.brl/m.amt)+'/'+esc(a?a.cur:''):'')+(m.type==='saq'&&m.brl?' · virou R$ '+num(m.brl):'')+'</small></div><div class="val'+(sg>0?' pos':'')+'">'+(m.type==='aj'?'= ':sg>0?'+ ':'− ')+(a?fmtCur(m.amt,a.cur):num(m.amt))+'</div></button>'}
-function acSheet(id){var a=DB.ac[id],b=acBal(id),r=rateOf(a.cur),ms=vals(DB.am).filter(function(m){return m.ac===id}).sort(function(x,z){return x.d<z.d?1:x.d>z.d?-1:(z.ts||0)-(x.ts||0)});
-  var h='<div style="text-align:center;margin:4px 0 14px"><small style="color:var(--mute)">'+esc(a.name)+' · '+esc(ownerName(a.owner))+'</small><div class="amt" style="margin:4px 0 0;font-size:34px">'+fmtCur(b,a.cur)+'</div><small style="color:var(--mute)">'+(r?'≈ '+money(b*r)+' (cotação R$ '+num(r)+')':'sem cotação')+(acCost(id)?' · custo médio R$ '+num(acCost(id)):'')+'</small></div>';
-  h+='<div class="chips">'+['dep','gas','rec','saq','aj'].map(function(k){return '<button class="chip" data-act="newam" data-v="'+k+'" data-id="'+esc(id)+'">'+ATYPES[k][1]+' '+ATYPES[k][0]+'</button>'}).join('')+'</div>';
-  h+='<div class="card" style="background:#F6F7F9;box-shadow:none">'+(ms.length?ms.slice(0,40).map(function(m){return amRow(m,false)}).join(''):'<div class="empty">Sem movimentações. Comece em “Corrigir saldo” com o saldo de hoje.</div>')+'</div>';
-  openSheet(h+'<button class="ghost" style="color:var(--ink2)" data-act="editac" data-id="'+esc(id)+'">Editar conta</button>');
+function acSheet(id){var a=DB.ac[id],b=acBal(id),r=rateOf(a.cur),c=acCost(id),ms=vals(DB.am).filter(function(m){return m.ac===id}).sort(function(x,z){return x.d<z.d?1:x.d>z.d?-1:(z.ts||0)-(x.ts||0)});
+  var h='<div style="text-align:center;margin:0 0 12px"><small style="color:var(--mute)">'+(CURS[a.cur]||['💱'])[0]+' '+esc(a.name)+' · '+esc(ownerName(a.owner))+'</small><div class="amt" style="margin:2px 0 0;font-size:32px">'+fmtCur(b,a.cur)+'</div><small style="color:var(--mute);font-size:12.5px">'+(r?'≈ '+money(b*r):'sem cotação')+(c?' · custo médio R$ '+num(c):'')+'</small></div>';
+  h+='<div class="acts">'+['dep','gas','rec','saq','aj'].map(function(k){return '<button data-act="newam" data-v="'+k+'" data-id="'+esc(id)+'"><span>'+ATYPES[k][1]+'</span>'+{dep:'Envio',gas:'Gasto',rec:'Recebi',saq:'Trazer p/ BR',aj:'Ajustar saldo'}[k]+'</button>'}).join('')+'<button data-act="editac" data-id="'+esc(id)+'"><span>⚙️</span>Editar conta</button></div>';
+  h+='<div class="card" style="background:#F6F7F9;box-shadow:none;margin-top:12px">'+(ms.length?ms.slice(0,40).map(function(m){return amRow(m,false)}).join(''):'<div class="empty">Sem movimentações ainda.</div>')+'</div>';
+  openSheet(h);
 }
 function acForm(){var f=AF,owners=MEMBERS.map(function(m){return[m.user_id,m.name||'Sem nome']});
   var h='<b style="font-size:19px;display:block;margin:2px 4px 12px">'+(f.id?'Editar':'Nova')+' conta internacional</b><div class="info"><div class="irow"><span>Nome</span><input class="fin" id="a2-name" value="'+esc(f.name)+'" placeholder="ex.: Wise, Nomad"></div>'+
