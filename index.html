@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#F3F4F6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -144,6 +144,11 @@ button,input{font:inherit;color:inherit;border:0;background:none;padding:0;curso
 .save:disabled{opacity:.4}
 button.mid{display:block;min-width:0}
 .tiles{display:grid;gap:10px}
+html,body,button,input,select,label,.view,.sheet{touch-action:manipulation}
+input,select,textarea,.desc,.search,.sel,.fin,.fld{font-size:16px!important}
+.sheet .grab{width:48px;height:5px;margin:0 auto 14px;position:relative}
+.sheet .grab:before{content:'';position:absolute;left:-60px;right:-60px;top:-14px;bottom:-14px}
+.sheet.drag{transition:none}
 </style>
 </head>
 <body>
@@ -667,6 +672,17 @@ document.addEventListener('change',function(e){
   if(t.getAttribute&&t.getAttribute('data-cprog')){var kk=t.getAttribute('data-cprog');setCfg(function(c){c.cards[kk].prog=t.value.trim()})}
   if(t.id==='imp'&&t.files[0]){importOld(t.files[0]);t.value=''}
 });
+/* arrastar para baixo fecha o painel */
+(function(){var sh=document.getElementById('sheet'),dm=document.getElementById('dim'),y0=0,t0=0,dy=0,on=false,ok=false;
+  sh.addEventListener('touchstart',function(e){if(!sh.classList.contains('on'))return;ok=sh.scrollTop<=0||!!e.target.closest('.grab');on=false;dy=0;y0=e.touches[0].clientY;t0=Date.now()},{passive:true});
+  sh.addEventListener('touchmove',function(e){if(!ok)return;var d=e.touches[0].clientY-y0;
+    if(!on){if(d>8&&(sh.scrollTop<=0||e.target.closest('.grab'))){on=true;sh.classList.add('drag');var ae=document.activeElement;if(ae&&ae.blur)ae.blur()}else if(d<-4){ok=false;return}else return}
+    dy=Math.max(0,d);sh.style.transform='translateY('+dy+'px)';dm.style.opacity=String(Math.max(0,1-dy/(sh.offsetHeight||1)));e.preventDefault()},{passive:false});
+  function end(){if(!on){ok=false;return}on=false;ok=false;sh.classList.remove('drag');var v=dy/Math.max(1,Date.now()-t0);
+    sh.style.transform='';dm.style.opacity='';if(dy>Math.min(140,sh.offsetHeight*.25)||(dy>40&&v>.5))closeSheet()}
+  sh.addEventListener('touchend',end);sh.addEventListener('touchcancel',end);
+})();
+document.addEventListener('gesturestart',function(e){e.preventDefault()});
 window.addEventListener('online',function(){if(HH)loadAll().then(render)});
 sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'){ME=null}});
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(function(){});
