@@ -177,6 +177,7 @@ input,select,textarea,.desc,.search,.sel,.fin,.fld{font-size:16px!important}
 .hd .chip{flex:none}
 .sec button{color:var(--pri);font-weight:600;font-size:13.5px}
 @media(max-height:700px){.frm .amt{font-size:32px;margin-top:4px}.frm .cat .ic{width:36px;height:36px;font-size:17px}.frm .keys button{padding:7px 0;font-size:19px}.frm .save{padding:11px}.sheet{max-height:97%}}
+@media(max-height:600px){.frm .fq{display:none}.frm .cat{font-size:0}.frm .cat .ic{margin-bottom:0}.frm .keys button{padding:6px 0}.sheet{max-height:99%}}
 </style>
 </head>
 <body>
@@ -437,7 +438,7 @@ function vMais(){
   var mi=miSummary(),code=HH?HH.invite_code:'';
   var ib=intlSummary(''),t=[['🌎','Contas internacionais',vals(DB.ac).length?'≈ '+money(ib.brl)+' · '+vals(DB.ac).length+' conta'+(vals(DB.ac).length>1?'s':''):'Dólar, euro e outras moedas','#ECFDF5','intl'],['✈️','Milhas',mi.total?int(mi.total)+' pontos':'Saldo e transferências','#E0F2FE','milhas'],['🧾','Contas fixas','Salários, contas, parcelas','#E6F6F3','planos'],['💳','Cartões','Fechamento, vencimento, pontos','#FEF3C7','cartoes'],['👥','Pessoas da casa',MEMBERS.length+' pessoa'+(MEMBERS.length!==1?'s':'')+' · convite','#FCE7F3','pessoas'],['📥','Importar dados','Backup do app antigo','#EEF2FF','importar'],['🚪','Sair','Desconectar este aparelho','#F1F5F9','logout']];
   return '<div class="hd"><div class="hi"><b>Mais</b></div></div><div class="tiles">'+t.map(function(x){return '<button class="tile" data-act="'+x[4]+'"><div class="ic" style="background:'+x[3]+'">'+x[0]+'</div><div><b>'+x[1]+'</b><small>'+esc(x[2])+'</small></div></button>'}).join('')+'</div>'+
-  '<p class="hint" style="text-align:center;margin-top:18px">Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
+  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11 · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
 }
 function render(){
   if(!READY||!HH)return;
@@ -803,7 +804,7 @@ document.addEventListener('change',function(e){
 document.addEventListener('gesturestart',function(e){e.preventDefault()});
 window.addEventListener('online',function(){if(HH)loadAll().then(render)});
 sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'){ME=null}});
-if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(function(){});
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').then(function(r){r.update()}).catch(function(){});
 boot();
 </script>
 </body>
