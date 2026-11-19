@@ -451,7 +451,7 @@ function vMais(){
   var mi=miSummary(),code=HH?HH.invite_code:'';
   var ib=intlSummary(''),t=[['🌎','Contas internacionais',vals(DB.ac).length?'≈ '+money(ib.brl)+' · '+vals(DB.ac).length+' conta'+(vals(DB.ac).length>1?'s':''):'Dólar, euro e outras moedas','#ECFDF5','intl'],['✈️','Milhas',mi.total?int(mi.total)+' pontos':'Saldo e transferências','#E0F2FE','milhas'],['🧾','Contas fixas','Salários, contas, parcelas','#E6F6F3','planos'],['💳','Cartões','Fechamento, vencimento, pontos','#FEF3C7','cartoes'],['👥','Pessoas da casa',MEMBERS.length+' pessoa'+(MEMBERS.length!==1?'s':'')+' · convite','#FCE7F3','pessoas'],['📥','Importar dados','Backup do app antigo','#EEF2FF','importar'],['🚪','Sair','Desconectar este aparelho','#F1F5F9','logout']];
   return '<div class="hd"><div class="hi"><b>Mais</b></div></div><div class="tiles">'+t.map(function(x){return '<button class="tile" data-act="'+x[4]+'"><div class="ic" style="background:'+x[3]+'">'+x[0]+'</div><div><b>'+x[1]+'</b><small>'+esc(x[2])+'</small></div></button>'}).join('')+'</div>'+
-  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11f · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
+  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11g · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
 }
 function render(){
   if(!READY||!HH)return;
@@ -488,7 +488,7 @@ function addForm(){
   openSheet(h);
 }
 function grabDesc(){var e=document.getElementById('fdesc');if(e&&F)F.desc=e.value}
-function key(k){var v=F.v||'';if(k==='⌫')v=v.slice(0,-1);else if(k===','){if(v.indexOf(',')<0)v=(v||'0')+','}else{if(v.indexOf(',')>=0&&v.split(',')[1].length>=2)return;if(v.replace(',','').length>=8)return;v=(v==='0'?'':v)+k}F.v=v;
+function key(k){var v=F.v||'';if(F.fresh){F.fresh=false;if(k!=='⌫')v='';}if(k==='⌫')v=v.slice(0,-1);else if(k===','){if(v.indexOf(',')<0)v=(v||'0')+','}else{if(v.indexOf(',')>=0&&v.split(',')[1].length>=2)return;if(v.replace(',','').length>=8)return;v=(v==='0'?'':v)+k}F.v=v;
   var a=document.getElementById('amt');a.innerHTML='<small>R$</small>'+fmtTyped(v);a.className='amt'+(v?'':' zero');
   var s=document.querySelector('[data-act=savetx]');if(s)s.disabled=!(typedVal()>0);var pc=document.getElementById('parc');if(pc)pc.textContent=parcTxt()}
 function saveTx(){
@@ -567,7 +567,7 @@ function scanNota(file){
     var cg=guessCat(F.desc)||catGuess((r.info?r.info.cnae+' ':'')+F.desc+' '+(r.raw||'').slice(0,300));if(cg)F.cat=cg;
     if(r.pay==='C'){var cards=Object.keys(CFG().cards),pick=isCard(F.src)?F.src:cards[0];if(r.brand==='elo'&&cards.indexOf('Crédito Elo')>=0)pick='Crédito Elo';if(pick)F.src=pick;sum.push('crédito'+(r.brand?' '+r.brand:''))}
     else if(r.pay==='D'||r.pay==='P'||r.pay==='$'){if(CFG().srcs.indexOf('Débito/Pix')>=0)F.src='Débito/Pix';sum.push({D:'débito',P:'pix',$:'dinheiro'}[r.pay])}
-    F.scan={sum:sum.length?sum.join(' · '):'Não consegui ler bem. Tente uma foto mais de perto, reta e com luz.',raw:(r.qr?'QR: '+r.qr+'\n\n':'')+(r.raw||'')};
+    F.fresh=!!r.v;F.scan={sum:sum.length?sum.join(' · '):'Não consegui ler bem. Tente uma foto mais de perto, reta e com luz.',raw:(r.qr?'QR: '+r.qr+'\n\n':'')+(r.raw||'')};
     addForm();if(!r.v)toast('Não achei o valor total. Digite no teclado.');
   }).catch(function(e){F=keep;addForm();toast(e&&e.message?e.message:'Não consegui ler a foto')});
 }
@@ -905,7 +905,7 @@ document.addEventListener('click',function(e){
     case 'savetx':saveTx();break;
     case 'scantxt':alert((F&&F.scan&&F.scan.raw)||'');break;
     case 'tx':txDetail(DB.tx[id]);break;
-    case 'edit':var t=DB.tx[id];F={id:t.id,t:t.t,v:num(t.v).replace(/\./g,''),cat:t.cat,src:t.src||CFG().srcs[0],d:t.d,desc:t.desc,n:1,mo:t.m&&t.m!==(t.t==='D'&&isCard(t.src)?refOf(t.src,t.d):t.d.slice(0,7))?t.m:''};addForm();break;
+    case 'edit':var t=DB.tx[id];F={fresh:true,id:t.id,t:t.t,v:num(t.v).replace(/\./g,''),cat:t.cat,src:t.src||CFG().srcs[0],d:t.d,desc:t.desc,n:1,mo:t.m&&t.m!==(t.t==='D'&&isCard(t.src)?refOf(t.src,t.d):t.d.slice(0,7))?t.m:''};addForm();break;
     case 'deltx':closeSheet();undoable('tx',id,'Lançamento excluído');break;
     case 'undo':if(UNDO){put(UNDO.coll,UNDO.id,UNDO.data);UNDO=null;toast('Restaurado')}break;
     case 'pay':togglePay(id);break;
