@@ -178,6 +178,9 @@ input,select,textarea,.desc,.search,.sel,.fin,.fld{font-size:16px!important}
 .sec button{color:var(--pri);font-weight:600;font-size:13.5px}
 @media(max-height:700px){.frm .amt{font-size:32px;margin-top:4px}.frm .cat .ic{width:36px;height:36px;font-size:17px}.frm .keys button{padding:7px 0;font-size:19px}.frm .save{padding:11px}.sheet{max-height:97%}}
 @media(max-height:600px){.frm .fq{display:none}.frm .cat{font-size:0}.frm .cat .ic{margin-bottom:0}.frm .keys button{padding:6px 0}.sheet{max-height:99%}}
+.seg .cnt{display:inline-block;min-width:17px;padding:0 5px;border-radius:99px;background:var(--pri);color:#fff;font-size:10.5px;line-height:17px;margin-left:2px}
+.hero+.seg button,.seg button .cnt{white-space:nowrap}
+.mseg button{font-size:12.5px;padding:7px 2px;white-space:nowrap}.view{overflow-x:hidden}
 </style>
 </head>
 <body>
@@ -211,7 +214,7 @@ var MES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto',
 var MTYPES={ini:['Saldo','🏁'],acu:['Acúmulo','⬆️'],tra:['Transferência','🔁'],res:['Resgate','✈️'],com:['Compra de pontos','🛒'],exp:['Expirou','⌛']};
 
 /* ---------- estado ---------- */
-var ME=null,HH=null,MEMBERS=[],DB={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{}},READY=false;
+var ME=null,HH=null,MEMBERS=[],DB={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{}},READY=false;
 var today=new Date(),TODAY=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
 var cur=TODAY.slice(0,7),tab='home',flt='',q='',F=null,PF=null,MF=null,OPEN={},showAllCat=false,UNDO=null;
 
@@ -277,7 +280,7 @@ function summary(ym){
 /* ---------- banco ---------- */
 var CACHE_KEY='financas-nuvem-cache';
 function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({hh:HH,members:MEMBERS,db:DB}))}catch(e){}}
-function loadCache(){try{var c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(c&&c.hh&&HH&&c.hh.id===HH.id){DB=c.db;['tx','plan','fat','cfg','mi','ac','am'].forEach(function(k){if(!DB[k])DB[k]={}});Object.keys(DB).forEach(function(k){Object.keys(DB[k]).forEach(function(i){var o=DB[k][i];if(o&&typeof o==='object'&&o.id==null)o.id=i})});MEMBERS=c.members||[];return true}}catch(e){}return false}
+function loadCache(){try{var c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(c&&c.hh&&HH&&c.hh.id===HH.id){DB=c.db;['tx','plan','fat','cfg','mi','ac','am','mp','mc','mx'].forEach(function(k){if(!DB[k])DB[k]={}});Object.keys(DB).forEach(function(k){Object.keys(DB[k]).forEach(function(i){var o=DB[k][i];if(o&&typeof o==='object'&&o.id==null)o.id=i})});MEMBERS=c.members||[];return true}}catch(e){}return false}
 function put(coll,id,data){
   DB[coll][id]=data;saveCache();render();
   return sb.from('items').upsert({household_id:HH.id,coll:coll,id:id,data:data}).then(function(r){if(r.error){toast('Não salvou: '+(navigator.onLine?r.error.message:'sem internet'));console.error(r.error)}});
@@ -294,7 +297,7 @@ function del(coll,id){
 function loadAll(){
   var all=[],from=0;
   function page(){return sb.from('items').select('coll,id,data').eq('household_id',HH.id).range(from,from+999).then(function(r){if(r.error)throw r.error;all=all.concat(r.data);if(r.data.length===1000){from+=1000;return page()}})}
-  return page().then(function(){var n={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{}};all.forEach(function(r){if(n[r.coll]){if(r.data&&typeof r.data==='object'&&r.data.id==null)r.data.id=r.id;n[r.coll][r.id]=r.data}});DB=n;READY=true;saveCache()});
+  return page().then(function(){var n={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{}};all.forEach(function(r){if(n[r.coll]){if(r.data&&typeof r.data==='object'&&r.data.id==null)r.data.id=r.id;n[r.coll][r.id]=r.data}});DB=n;READY=true;saveCache()});
 }
 var CH=null;
 function subscribe(){
@@ -358,6 +361,9 @@ function vHome(){
     (isNow&&s.free>0?'<div class="note" style="margin:-6px 0 10px">cerca de '+money(r2(s.free/left))+' por dia até o fim do mês</div>':'')+
     '<div class="io"><div>⬇ Entra<b>'+money(s.inc)+'</b></div><div>⬆ Sai<b>'+money(s.out)+'</b></div></div>'+
     (s.recP||s.pend?'<div class="note">Inclui o que ainda vai entrar ('+money(s.recP)+') e sair ('+money(s.pend)+') no mês</div>':'')+'</div>';
+  var ex30=expLots().filter(function(x){return !x.done&&x.d>=TODAY&&days(x.d)<=30}),pr3=vals(DB.mp).filter(function(p){return !p.reg&&p.end>=TODAY&&days(p.end)<=3});
+  if(ex30.length)h+='<button class="warn" style="display:block;width:100%;text-align:left;margin-top:12px" data-act="mtab" data-v="ven">⌛ '+int(ex30.reduce(function(z,x){return z+x.pts},0))+' pontos vencem em até 30 dias ›</button>';
+  if(pr3.length)h+='<button class="warn" style="display:block;width:100%;text-align:left;margin-top:8px;background:#E0F2FE;color:#0369A1" data-act="mtab" data-v="pro">🎯 Promoção de milhas acabando e você não se inscreveu ›</button>';
   if(s.inc>0){var tot=s.inc,seg=[['Contas fixas',s.fixos,'#14B8A6'],['Dívidas e parcelas',s.dividas,'#6366F1'],['Dia a dia',Math.max(0,s.out-s.fixos-s.dividas),'#F59E0B']];
     h+='<div class="sec"><b>Para onde vai a renda</b></div><div class="card" style="padding:14px"><div class="stack">'+seg.map(function(x){return '<i style="width:'+Math.min(100,x[1]/tot*100)+'%;background:'+x[2]+'"></i>'}).join('')+'</div>'+
     seg.map(function(x){return '<div class="lg"><span><i style="background:'+x[2]+'"></i>'+x[0]+'</span><b>'+Math.round(x[1]/tot*100)+'% · '+money(x[1])+'</b></div>'}).join('')+
@@ -438,7 +444,7 @@ function vMais(){
   var mi=miSummary(),code=HH?HH.invite_code:'';
   var ib=intlSummary(''),t=[['🌎','Contas internacionais',vals(DB.ac).length?'≈ '+money(ib.brl)+' · '+vals(DB.ac).length+' conta'+(vals(DB.ac).length>1?'s':''):'Dólar, euro e outras moedas','#ECFDF5','intl'],['✈️','Milhas',mi.total?int(mi.total)+' pontos':'Saldo e transferências','#E0F2FE','milhas'],['🧾','Contas fixas','Salários, contas, parcelas','#E6F6F3','planos'],['💳','Cartões','Fechamento, vencimento, pontos','#FEF3C7','cartoes'],['👥','Pessoas da casa',MEMBERS.length+' pessoa'+(MEMBERS.length!==1?'s':'')+' · convite','#FCE7F3','pessoas'],['📥','Importar dados','Backup do app antigo','#EEF2FF','importar'],['🚪','Sair','Desconectar este aparelho','#F1F5F9','logout']];
   return '<div class="hd"><div class="hi"><b>Mais</b></div></div><div class="tiles">'+t.map(function(x){return '<button class="tile" data-act="'+x[4]+'"><div class="ic" style="background:'+x[3]+'">'+x[0]+'</div><div><b>'+x[1]+'</b><small>'+esc(x[2])+'</small></div></button>'}).join('')+'</div>'+
-  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11b · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
+  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11c · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
 }
 function render(){
   if(!READY||!HH)return;
@@ -554,6 +560,11 @@ function estPts(ym){var r=[];Object.keys(CFG().cards).forEach(function(s){var c=
 function vMilhas(){
   var s=miSummary(),y=cur.slice(0,4),h='<div class="hd"><div class="hi"><small><button class="link" style="padding:0" data-tab="mais">‹ Mais</button></small><b>Milhas</b></div><div class="month"><button data-act="prev">‹</button>'+mLabel(cur)+'<button data-act="next">›</button></div></div>';
   h+='<div class="hero" style="background:radial-gradient(120% 140% at 100% 0%,#38BDF8 0%,#0369A1 50%,#0C4A6E 100%);box-shadow:0 12px 24px rgba(3,105,161,.25)"><small>Total em todos os programas</small><div class="big">'+int(s.total)+' <span style="font-size:18px;font-weight:600">pontos</span></div><div class="io">'+(Object.keys(s.by).length?Object.keys(s.by).sort(function(a,b){return s.by[b]-s.by[a]}).slice(0,3).map(function(k){return '<div>'+esc(k)+'<b>'+int(s.by[k])+'</b></div>'}).join(''):'<div>Nenhum saldo lançado<b>Toque em “+ Movimentação”</b></div>')+'</div></div>';
+  var al=miAlerts();
+  h+='<div class="seg mseg" style="margin:14px 0 4px">'+[['res','Resumo'],['pro','Promos',al.promos],['clu','Clubes',vals(DB.mc).filter(function(c){return c.active!==false}).length],['ven','Validade',al.soon]].map(function(x){return '<button data-act="mtab" data-v="'+x[0]+'" class="'+(MTAB===x[0]?'on':'')+'">'+x[1]+(x[2]?' <span class="cnt">'+x[2]+'</span>':'')+'</button>'}).join('')+'</div>';
+  if(MTAB==='pro')return h+vPromos();if(MTAB==='clu')return h+vClubs();if(MTAB==='ven')return h+vVenc();
+  if(al.soonPts)h+='<button class="warn" style="display:block;width:100%;text-align:left" data-act="mtab" data-v="ven">⌛ '+int(al.soonPts)+' pontos vencem nos próximos 90 dias'+(al.next?' · o primeiro em '+dBr(al.next.d)+'/'+al.next.d.slice(2,4):'')+' ›</button>';
+  if(al.promos)h+='<button class="warn" style="display:block;width:100%;text-align:left;background:#E0F2FE;color:#0369A1" data-act="mtab" data-v="pro">🎯 '+al.promos+' promoç'+(al.promos>1?'ões ativas':'ão ativa')+(al.notReg?' · '+al.notReg+' sem inscrição':'')+' ›</button>';
   var est=estPts(cur);
   if(est.length){h+='<div class="sec"><b>Pontos do cartão em '+MES[+cur.slice(5,7)-1]+'</b></div><div class="card">';est.forEach(function(e){var c=card(e.src);h+='<div class="it"><div class="ic" style="background:#E0F2FE">💳</div><div class="mid"><b>'+esc(SRC(e.src)[1])+' → '+esc(e.prog)+'</b><small>'+money(e.brl)+' ÷ R$ '+num(rateOf('USD'))+' × '+String(c.pts).replace('.',',')+' pt/US$</small></div>'+(e.reg?'<div class="val" style="color:var(--mute)">✓ '+int(e.pts)+'</div>':'<button class="chip on" data-act="miest" data-v="'+esc(e.src)+'">+ '+int(e.pts)+'</button>')+'</div>'});h+='<p class="hint" style="padding:0 0 10px">Estimativa pelo total da fatura. Confira no extrato do programa e ajuste se precisar.</p></div>'}
   var mo=MIS().filter(function(m){return m.d.slice(0,7)===cur}),ya=MIS().filter(function(m){return m.d.slice(0,4)===y});
@@ -562,15 +573,77 @@ function vMilhas(){
   h+='<div class="sec"><b>Balanço</b></div><div class="card" style="padding:4px 14px"><div class="dl"><span></span><b style="display:flex;gap:18px"><span style="width:80px;text-align:right;color:var(--mute);font-size:12px">'+MES[+cur.slice(5,7)-1].slice(0,3)+'</span><span style="width:80px;text-align:right;color:var(--mute);font-size:12px">'+y+'</span></b></div>'+
   [['Acumulados',a.acu,b.acu],['Comprados',a.com,b.com],['Transferidos',a.tra,b.tra],['Bônus ganho',a.bon,b.bon],['Usados em resgates',a.res,b.res],['Expirados',a.exp,b.exp]].map(function(r){return '<div class="dl"><span>'+r[0]+'</span><b style="display:flex;gap:18px"><span style="width:80px;text-align:right">'+int(r[1])+'</span><span style="width:80px;text-align:right">'+int(r[2])+'</span></b></div>'}).join('')+
   (b.res&&b.brl?'<div class="dl"><span>Valor do milheiro nos resgates ('+y+')</span><b>'+money(r2(b.brl/b.res*1000))+'</b></div>':'')+'</div>';
-  var exp=MIS().filter(function(m){return m.exp&&m.exp>=TODAY&&m.exp<=addDays(TODAY,90)});
-  if(exp.length)h+='<div class="warn" style="margin-top:12px">⌛ '+int(exp.reduce(function(s,m){return s+m.pts},0))+' pontos vencem nos próximos 90 dias.</div>';
   h+='<div class="sec"><b>Movimentações de '+MES[+cur.slice(5,7)-1]+'</b></div><div class="card">';
   if(!mo.length)h+='<div class="empty">Nenhuma movimentação neste mês.</div>';
   mo.sort(function(x,z){return x.d<z.d?1:-1}).forEach(function(m){var T=MTYPES[m.type];h+='<button class="it" data-act="editmi" data-id="'+esc(m.id)+'"><div class="ic" style="background:#E0F2FE">'+T[1]+'</div><div class="mid"><b>'+T[0]+(m.type==='tra'?': '+esc(m.prog)+' → '+esc(m.dest)+(m.bonus?' (+'+m.bonus+'%)':''):' · '+esc(m.prog))+'</b><small>'+dBr(m.d)+(m.note?' · '+esc(m.note):'')+(m.brl?' · '+money(m.brl):'')+'</small></div><div class="val'+(m.type==='acu'||m.type==='com'||m.type==='ini'?' pos':'')+'">'+(m.type==='acu'||m.type==='com'||m.type==='ini'?'+':'−')+int(m.pts)+'</div></button>'});
   return h+'</div><button class="save" data-act="newmi">+ Movimentação</button>';
 }
 function addDays(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate())}
-function progs(){var s={Livelo:1,Esfera:1,Smiles:1,'LATAM Pass':1,TudoAzul:1};MIS().forEach(function(m){s[m.prog]=1;if(m.dest)s[m.dest]=1});return Object.keys(s)}
+function progs(){var s={Livelo:1,Esfera:1,Smiles:1,'LATAM Pass':1,TudoAzul:1};MIS().forEach(function(m){s[m.prog]=1;if(m.dest)s[m.dest]=1});vals(DB.mp).concat(vals(DB.mc),vals(DB.mx)).forEach(function(x){if(x.prog)s[x.prog]=1;if(x.from)s[x.from]=1});return Object.keys(s)}
+/* ----- promoções, clubes e vencimentos ----- */
+var MTAB='res',PRF=null,CLF=null,XF=null;
+var PKIND={tra:['Transferência bonificada','🔁'],com:['Compra de pontos','🛒'],acu:['Acúmulo turbinado','⬆️'],out:['Outra','🎯']};
+function days(d){return Math.round((new Date(d+'T12:00:00')-new Date(TODAY+'T12:00:00'))/864e5)}
+function left(d){var n=days(d);return n<0?'encerrada':n===0?'termina hoje':n===1?'falta 1 dia':'faltam '+n+' dias'}
+function selProg(id,v,extra){return '<select class="sel" id="'+id+'">'+(extra||'')+progs().map(function(p){return '<option'+(p===v?' selected':'')+'>'+esc(p)+'</option>'}).join('')+'<option value="__novo">+ Outro programa…</option></select>'}
+function expLots(){var o=[];
+  MIS().forEach(function(m){if(!m.exp)return;var pts=m.type==='tra'?Math.round(m.pts*(m.par||1)*(1+(m.bonus||0)/100)):m.pts,prog=m.type==='tra'?m.dest:m.prog;o.push({src:'mi',id:m.id,prog:prog,pts:pts,d:m.exp,note:MTYPES[m.type][0]+(m.note?' · '+m.note:''),done:!!m.expDone})});
+  vals(DB.mx).forEach(function(x){o.push({src:'mx',id:x.id,prog:x.prog,pts:x.pts,d:x.d,note:x.note||'',done:!!x.done})});
+  return o.sort(function(a,b){return a.done-b.done||a.d.localeCompare(b.d)})}
+function miAlerts(){var l=expLots().filter(function(x){return !x.done&&x.d>=TODAY&&days(x.d)<=90}),pr=vals(DB.mp).filter(function(p){return p.end>=TODAY});
+  return{soon:l.length,soonPts:l.reduce(function(s,x){return s+x.pts},0),next:l[0],promos:pr.length,notReg:pr.filter(function(p){return !p.reg}).length}}
+function vPromos(){var l=vals(DB.mp).sort(function(a,b){return(a.end<TODAY)-(b.end<TODAY)||a.end.localeCompare(b.end)}),act=l.filter(function(p){return p.end>=TODAY}),old=l.filter(function(p){return p.end<TODAY});
+  var row=function(p){var K=PKIND[p.kind]||PKIND.out,n=days(p.end),on=n>=0;
+    return '<div class="it"'+(on?'':' style="opacity:.55"')+'><button class="check'+(p.reg?' on':'')+'" data-act="preg" data-id="'+esc(p.id)+'" aria-label="Inscrito">'+(p.reg?'✓':'')+'</button><button class="mid" style="text-align:left" data-act="editpr" data-id="'+esc(p.id)+'"><b>'+K[1]+' '+(p.kind==='tra'?esc(p.from||'?')+' → '+esc(p.prog):esc(p.prog))+(p.bonus?' +'+p.bonus+'%':'')+'</b><small>'+esc(p.title||K[0])+' · até '+dBr(p.end)+(on?' · <span style="color:'+(n<=3?'var(--red)':'var(--amb)')+'">'+left(p.end)+'</span>':'')+(p.reg?' · ✓ inscrito':on?' · <span style="color:var(--red);font-weight:700">falta se inscrever</span>':'')+'</small></button>'+(on&&p.kind==='tra'?'<button class="chip on" data-act="pruse" data-id="'+esc(p.id)+'">Usar</button>':'')+'</div>'};
+  var h='<div class="sec"><b>Ativas</b><button data-act="newpr">+ Promoção</button></div><div class="card">'+(act.length?act.map(row).join(''):'<div class="empty">Nenhuma promoção ativa. Viu uma? Toque em “+ Promoção” para não perder o prazo.</div>')+'</div>';
+  if(old.length)h+='<div class="sec"><b>Encerradas</b></div><div class="card">'+old.slice(0,10).map(row).join('')+'</div>';
+  return h+'<p class="hint">Marque o círculo quando fizer a inscrição. “Usar” abre uma transferência já com o bônus da promoção.</p>'}
+function prForm(){var f=PRF,h='<b style="font-size:19px;display:block;margin:2px 4px 12px">'+(f.id?'Editar':'Nova')+' promoção</b><div class="chips">'+Object.keys(PKIND).map(function(k){return '<button class="chip'+(f.kind===k?' on':'')+'" data-act="prk" data-v="'+k+'">'+PKIND[k][1]+' '+PKIND[k][0]+'</button>'}).join('')+'</div><div class="info">';
+  if(f.kind==='tra')h+='<div class="irow"><span>De</span>'+selProg('r-from',f.from)+'</div>';
+  h+='<div class="irow"><span>'+(f.kind==='tra'?'Para':'Programa')+'</span>'+selProg('r-prog',f.prog)+'</div><div class="irow"><span>Bônus (%)</span><input class="fin" id="r-bonus" inputmode="numeric" value="'+esc(f.bonus)+'" placeholder="ex.: 80" style="max-width:90px"></div>'+
+  '<div class="irow"><span>Válida até</span><input class="fin" id="r-end" type="date" value="'+esc(f.end)+'"></div><div class="irow"><span>Nome / regra</span><input class="fin" id="r-title" value="'+esc(f.title)+'" placeholder="ex.: Black Friday, clube +20%"></div>'+
+  '<div class="irow"><div>Já me inscrevi<small>muitas promoções só valem com inscrição antes</small></div><button class="tog'+(f.reg?' on':'')+'" data-act="prreg"></button></div></div>';
+  openSheet(h+'<button class="save" data-act="savepr">Salvar</button>'+(f.id?'<button class="ghost" data-act="delpr">Excluir</button>':''))}
+function grabR(){['from','prog','bonus','end','title'].forEach(function(k){var e=document.getElementById('r-'+k);if(e)PRF[k]=e.value})}
+function savePr(){grabR();var f=PRF;if(!f.end){toast('Escolha até quando vale');return}if(f.kind==='tra'&&f.from===f.prog){toast('Escolha programas diferentes');return}
+  var id=f.id||uid(),o=DB.mp[id]||{};put('mp',id,Object.assign({},o,{id:id,kind:f.kind,from:f.kind==='tra'?f.from:'',prog:f.prog,bonus:parseInt(f.bonus,10)||0,end:f.end,title:(f.title||'').trim(),reg:!!f.reg,by:o.by||ME.id}));PRF=null;closeSheet();toast('Promoção salva')}
+function clubPaidMonth(c,ym){return MIS().some(function(m){return m.club===c.id&&m.ym===ym})}
+function vClubs(){var l=vals(DB.mc).sort(function(a,b){return(a.active===false)-(b.active===false)||a.prog.localeCompare(b.prog)}),on=l.filter(function(c){return c.active!==false});
+  var cost=on.reduce(function(s,c){return s+c.price},0),pts=on.reduce(function(s,c){return s+c.pts},0);
+  var h='';if(on.length)h+='<div class="card" style="padding:12px 14px;margin-top:12px"><div class="lg"><span>Custo por mês</span><b>'+money(r2(cost))+'</b></div><div class="lg"><span>Pontos por mês</span><b>'+int(pts)+'</b></div><div class="lg"><span>Milheiro médio dos clubes</span><b>'+(pts?money(r2(cost/pts*1000)):'—')+'</b></div></div>';
+  h+='<div class="sec"><b>Clubes</b><button data-act="newcl">+ Clube</button></div><div class="card">';
+  if(!l.length)h+='<div class="empty">Nenhum clube. Ex.: Clube Smiles, Clube Livelo, Clube LATAM Pass.</div>';
+  l.forEach(function(c){var ok=clubPaidMonth(c,cur),act=c.active!==false;
+    h+='<div class="it"'+(act?'':' style="opacity:.55"')+'><div class="ic" style="background:#E0F2FE">🎟️</div><button class="mid" style="text-align:left" data-act="editcl" data-id="'+esc(c.id)+'"><b>'+esc(c.name||('Clube '+c.prog))+'</b><small>'+int(c.pts)+' pts/mês · '+money(c.price)+'/mês · milheiro '+(c.pts?money(r2(c.price/c.pts*1000)):'—')+(c.bonus?' · +'+c.bonus+'% nas transferências':'')+(act?'':' · cancelado')+'</small></button>'+
+      (act?(ok?'<span class="chip" style="color:var(--pri)">✓ '+MES[+cur.slice(5,7)-1].slice(0,3)+'</span>':'<button class="chip on" data-act="clcred" data-id="'+esc(c.id)+'">+ '+int(c.pts)+'</button>'):'')+'</div>'});
+  return h+'</div><p class="hint">Toque em “+ pontos” quando o crédito do mês cair no programa: entra no saldo de milhas. A mensalidade pode ir para as contas fixas, junto da fatura do cartão.</p>'}
+function clForm(){var f=CLF,h='<b style="font-size:19px;display:block;margin:2px 4px 12px">'+(f.id?'Editar':'Novo')+' clube</b><div class="info">'+
+  '<div class="irow"><span>Programa</span>'+selProg('l-prog',f.prog)+'</div><div class="irow"><span>Nome do plano</span><input class="fin" id="l-name" value="'+esc(f.name)+'" placeholder="ex.: Clube Smiles 2.000"></div>'+
+  '<div class="irow"><span>Pontos por mês</span><input class="fin" id="l-pts" inputmode="numeric" value="'+esc(f.pts)+'" placeholder="0" style="max-width:100px"></div><div class="irow"><span>Preço por mês</span><input class="fin" id="l-price" inputmode="decimal" value="'+esc(f.price)+'" placeholder="R$ 0,00" style="max-width:110px"></div>'+
+  '<div class="irow"><span>Dia da cobrança</span><input class="fin" id="l-day" inputmode="numeric" value="'+esc(f.day)+'" style="max-width:70px"></div><div class="irow"><span>Pago com</span><select class="sel" id="l-src"><option value="">Boleto / outro</option>'+CFG().srcs.map(function(x){return '<option'+(f.src===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>'+
+  '<div class="irow"><span>Bônus extra para assinantes (%)</span><input class="fin" id="l-bonus" inputmode="numeric" value="'+esc(f.bonus)+'" placeholder="0" style="max-width:80px"></div>'+
+  '<div class="irow"><div>Mensalidade nas contas fixas<small>aparece em Contas e na fatura do cartão</small></div><button class="tog'+(f.fix?' on':'')+'" data-act="clfix"></button></div>'+
+  (f.id?'<div class="irow"><div>Clube ativo<small>desligue se cancelar a assinatura</small></div><button class="tog'+(f.active?' on':'')+'" data-act="clact"></button></div>':'')+'</div>';
+  openSheet(h+'<button class="save" data-act="savecl">Salvar</button>'+(f.id?'<button class="ghost" data-act="delcl">Excluir</button>':''))}
+function grabL(){['prog','name','pts','price','day','src','bonus'].forEach(function(k){var e=document.getElementById('l-'+k);if(e)CLF[k]=e.value})}
+function saveCl(){grabL();var f=CLF,pts=parseInt(String(f.pts).replace(/\D/g,''),10)||0,price=parseBR(f.price);if(!pts){toast('Digite os pontos por mês');return}
+  var id=f.id||uid(),o=DB.mc[id]||{},day=Math.min(31,Math.max(1,parseInt(f.day,10)||1)),name=(f.name||'').trim()||('Clube '+f.prog);
+  var c=Object.assign({},o,{id:id,prog:f.prog,name:name,pts:pts,price:price,day:day,src:f.src||'',bonus:parseInt(f.bonus,10)||0,active:f.id?!!f.active:true,by:o.by||ME.id});
+  var want=f.fix&&c.active&&price>0;
+  if(want){var pid=o.plan&&DB.plan[o.plan]?o.plan:uid(),po=DB.plan[pid]||{};put('plan',pid,Object.assign({},po,{id:pid,k:'rec',name:name,v:price,day:day,src:c.src,cat:'assinaturas',nm:false,post:true,n0:1,tot:0,ym0:po.ym0||cur}));c.plan=pid}
+  else if(o.plan&&DB.plan[o.plan]){del('plan',o.plan);delete c.plan}
+  put('mc',id,c);CLF=null;closeSheet();toast('Clube salvo')}
+function vVenc(){var l=expLots(),up=l.filter(function(x){return !x.done&&x.d>=TODAY}),past=l.filter(function(x){return x.done||x.d<TODAY});
+  var tot=function(a,n){return a.filter(function(x){return days(x.d)<=n}).reduce(function(s,x){return s+x.pts},0)};
+  var h='<div class="card" style="padding:12px 14px;margin-top:12px"><div class="lg"><span>Vencem em 30 dias</span><b style="color:'+(tot(up,30)?'var(--red)':'inherit')+'">'+int(tot(up,30))+' pts</b></div><div class="lg"><span>Em 90 dias</span><b>'+int(tot(up,90))+' pts</b></div><div class="lg"><span>Em 1 ano</span><b>'+int(tot(up,365))+' pts</b></div></div>';
+  var row=function(x){var n=days(x.d),col=x.done?'var(--mute)':n<0?'var(--mute)':n<=30?'var(--red)':n<=90?'var(--amb)':'var(--pri)';
+    return '<div class="it"'+(x.done||n<0?' style="opacity:.55"':'')+'><button class="check'+(x.done?' on':'')+'" data-act="xdone" data-v="'+x.src+'" data-id="'+esc(x.id)+'" aria-label="Resolvido">'+(x.done?'✓':'')+'</button><button class="mid" style="text-align:left" data-act="'+(x.src==='mx'?'editx':'editmi')+'" data-id="'+esc(x.id)+'"><b>'+int(x.pts)+' pts · '+esc(x.prog)+'</b><small>'+(x.done?'resolvido':'vence '+dBr(x.d)+'/'+x.d.slice(2,4)+' · <span style="color:'+col+'">'+(n<0?'venceu':n===0?'vence hoje':n+' dias')+'</span>')+(x.note?' · '+esc(x.note):'')+'</small></button></div>'};
+  h+='<div class="sec"><b>Próximos vencimentos</b><button data-act="newx">+ Vencimento</button></div><div class="card">'+(up.length?up.map(row).join(''):'<div class="empty">Nada para vencer. Quando o programa avisar “X pontos expiram em…”, lance aqui.</div>')+'</div>';
+  if(past.length)h+='<div class="sec"><b>Resolvidos e vencidos</b></div><div class="card">'+past.slice(0,15).map(row).join('')+'</div>';
+  return h+'<p class="hint">Entram aqui os pontos que você lança com data de validade (acúmulo, compra ou transferência) e os vencimentos que você cadastra. Marque o círculo quando usar ou transferir os pontos.</p>'}
+function xForm(){var f=XF;openSheet('<b style="font-size:19px;display:block;margin:2px 4px 12px">'+(f.id?'Editar':'Novo')+' vencimento</b><div class="info"><div class="irow"><span>Programa</span>'+selProg('x-prog',f.prog)+'</div><div class="irow"><span>Pontos</span><input class="fin" id="x-pts" inputmode="numeric" value="'+esc(f.pts)+'" placeholder="0"></div><div class="irow"><span>Vence em</span><input class="fin" id="x-d" type="date" value="'+esc(f.d)+'"></div><div class="irow"><span>Observação</span><input class="fin" id="x-note" value="'+esc(f.note)+'" placeholder="opcional"></div></div><button class="save" data-act="savex">Salvar</button>'+(f.id?'<button class="ghost" data-act="delx">Excluir</button>':''))}
+function grabX(){['prog','pts','d','note'].forEach(function(k){var e=document.getElementById('x-'+k);if(e)XF[k]=e.value})}
+function saveX(){grabX();var f=XF,pts=parseInt(String(f.pts).replace(/\D/g,''),10)||0;if(!pts||!f.d){toast('Preencha pontos e data');return}var id=f.id||uid(),o=DB.mx[id]||{};put('mx',id,Object.assign({},o,{id:id,prog:f.prog,pts:pts,d:f.d,note:(f.note||'').trim(),done:!!o.done,by:o.by||ME.id}));XF=null;closeSheet();toast('Vencimento salvo')}
 function miForm(){
   var f=MF,T=f.type,h='<b style="font-size:19px;display:block;margin:2px 4px 12px">'+(f.id?'Editar':'Nova')+' movimentação</b><div class="chips">'+Object.keys(MTYPES).map(function(k){return '<button class="chip'+(T===k?' on':'')+'" data-act="mt" data-v="'+k+'">'+MTYPES[k][1]+' '+MTYPES[k][0]+'</button>'}).join('')+'</div>';
   var po=function(id,v){return '<select class="sel" id="'+id+'">'+progs().map(function(p){return '<option'+(p===v?' selected':'')+'>'+esc(p)+'</option>'}).join('')+'<option value="__novo">+ Outro programa…</option></select>'};
@@ -726,7 +799,7 @@ document.addEventListener('click',function(e){
     case 'mkhouse':case 'joinhouse':var hn=em('h-name').trim();if(!hn){houseScreen('Digite seu nome.');break}
       var call=a==='mkhouse'?sb.rpc('create_household',{p_name:'Nossa casa',p_member_name:hn}):sb.rpc('join_household',{p_code:em('h-code').trim(),p_member_name:hn});
       call.then(function(r){if(r.error){houseScreen(/invalid_code/.test(r.error.message)?'Código não encontrado. Confira e tente de novo.':/household_full/.test(r.error.message)?'Esta casa já está completa (2 pessoas).':/already_member/.test(r.error.message)?'Você já faz parte de uma casa.':esc(r.error.message));return}var h0=Array.isArray(r.data)?r.data[0]:r.data;openHouse(h0.id).then(function(){if(a==='mkhouse')peopleSheet()})});break;
-    case 'logout':sb.auth.signOut().then(function(){try{localStorage.removeItem(CACHE_KEY)}catch(x){}ME=null;HH=null;READY=false;DB={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{}};closeSheet();authScreen('in')});break;
+    case 'logout':sb.auth.signOut().then(function(){try{localStorage.removeItem(CACHE_KEY)}catch(x){}ME=null;HH=null;READY=false;DB={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{}};closeSheet();authScreen('in')});break;
     case 'prev':cur=addM(cur,-1);render();break;
     case 'next':cur=addM(cur,1);render();break;
     case 'flt':if(document.getElementById('sheet').classList.contains('on'))closeSheet();flt=flt===v&&tab==='ext'?'':v;tab='ext';render();document.getElementById('view').scrollTop=0;break;
@@ -783,6 +856,27 @@ document.addEventListener('click',function(e){
     case 'newmi':MF={type:'ini',prog:'Livelo',dest:'Smiles',pts:'',bonus:'',par:'1',brl:'',exp:'',d:TODAY,note:''};miForm();break;
     case 'miest':var es=estPts(cur).filter(function(x){return x.src===v})[0];MF={type:'acu',prog:es.prog,dest:'',pts:String(es.pts),bonus:'',par:'1',brl:'',exp:addDays(TODAY,365*3),d:dueOf(v,cur),note:'Fatura '+SRC(v)[1]+' de '+MES[+cur.slice(5,7)-1],src:v,ym:cur};miForm();break;
     case 'mt':grabM();MF.type=v;miForm();break;
+    case 'mtab':MTAB=v;tab='milhas';render();break;
+    case 'newpr':PRF={kind:'tra',from:'Livelo',prog:'Smiles',bonus:'',end:addDays(TODAY,7),title:'',reg:false};prForm();break;
+    case 'editpr':var pr=DB.mp[id];PRF=Object.assign({},pr,{bonus:pr.bonus?String(pr.bonus):''});prForm();break;
+    case 'prk':grabR();PRF.kind=v;prForm();break;
+    case 'prreg':grabR();PRF.reg=!PRF.reg;prForm();break;
+    case 'savepr':savePr();break;
+    case 'delpr':var prid=PRF.id;PRF=null;closeSheet();undoable('mp',prid,'Promoção excluída');break;
+    case 'preg':var pp=DB.mp[id];put('mp',id,Object.assign({},pp,{reg:!pp.reg}));toast(pp.reg?'Inscrição desmarcada':'✓ Inscrito');break;
+    case 'pruse':var pu=DB.mp[id];MF={type:'tra',prog:pu.from||'Livelo',dest:pu.prog,pts:'',bonus:String(pu.bonus||''),par:'1',brl:'',exp:'',d:TODAY,note:pu.title||'Promoção +'+pu.bonus+'%'};miForm();break;
+    case 'newcl':CLF={prog:'Smiles',name:'',pts:'',price:'',day:10,src:'Crédito Elo',bonus:'',fix:true,active:true};clForm();break;
+    case 'editcl':var cl=DB.mc[id];CLF=Object.assign({},cl,{pts:String(cl.pts),price:num(cl.price),bonus:cl.bonus?String(cl.bonus):'',fix:!!(cl.plan&&DB.plan[cl.plan]),active:cl.active!==false});clForm();break;
+    case 'clfix':grabL();CLF.fix=!CLF.fix;clForm();break;
+    case 'clact':grabL();CLF.active=!CLF.active;clForm();break;
+    case 'savecl':saveCl();break;
+    case 'delcl':var clid=CLF.id,clp=DB.mc[clid].plan;CLF=null;closeSheet();if(clp&&DB.plan[clp])del('plan',clp);undoable('mc',clid,'Clube excluído');break;
+    case 'clcred':var cc2=DB.mc[id],mm2={id:uid(),type:'acu',prog:cc2.prog,pts:cc2.pts,d:TODAY,note:cc2.name+' · '+MES[+cur.slice(5,7)-1],club:cc2.id,ym:cur,by:ME.id};put('mi',mm2.id,mm2);toast('✓ '+int(cc2.pts)+' pontos do clube');break;
+    case 'newx':XF={prog:'Livelo',pts:'',d:addDays(TODAY,30),note:''};xForm();break;
+    case 'editx':XF=Object.assign({},DB.mx[id]);XF.pts=String(XF.pts);xForm();break;
+    case 'savex':saveX();break;
+    case 'delx':var xid=XF.id;XF=null;closeSheet();undoable('mx',xid,'Vencimento excluído');break;
+    case 'xdone':if(v==='mx'){var xx=DB.mx[id];put('mx',id,Object.assign({},xx,{done:!xx.done}))}else{var mx2=DB.mi[id];put('mi',id,Object.assign({},mx2,{expDone:!mx2.expDone}))}break;
     case 'editmi':var mm=DB.mi[id];MF=Object.assign({},mm,{pts:String(mm.pts),bonus:String(mm.bonus||''),par:String(mm.par||1).replace('.',','),brl:mm.brl?num(mm.brl):'',exp:mm.exp||''});miForm();break;
     case 'savemi':saveMi();break;
     case 'delmi':var mid=MF.id;MF=null;closeSheet();undoable('mi',mid,'Movimentação excluída');break;
@@ -798,6 +892,7 @@ document.addEventListener('change',function(e){
   var t=e.target;
   if(t.id==='fdate'&&t.value){grabDesc();F.d=t.value;F.mo='';addForm()}
   if(t.id==='fmo'){grabDesc();F.mo=t.value;addForm()}
+  if(/^(r-from|r-prog|l-prog|x-prog)$/.test(t.id)&&t.value==='__novo'){var nn2=prompt('Nome do programa'),k2=t.id.slice(2);if(t.id[0]==='r'){grabR();if(nn2&&nn2.trim())PRF[k2]=nn2.trim();prForm()}else if(t.id[0]==='l'){grabL();if(nn2&&nn2.trim())CLF.prog=nn2.trim();clForm()}else{grabX();if(nn2&&nn2.trim())XF.prog=nn2.trim();xForm()}}
   if((t.id==='m-prog'||t.id==='m-dest')&&t.value==='__novo'){var nn=prompt('Nome do programa');grabM();if(nn&&nn.trim())MF[t.id==='m-prog'?'prog':'dest']=nn.trim();miForm()}
   if(t.id==='v-ac'&&MVF){grabV();amForm()}
   if(t.getAttribute&&t.getAttribute('data-rate')){var rc=t.getAttribute('data-rate'),rv=parseBR(t.value);setCfg(function(c){if(!c.rates)c.rates={};if(rv>0)c.rates[rc]=rv;else delete c.rates[rc];if(rc==='USD'&&rv>0)c.usd=rv});ratesSheet()}
