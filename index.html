@@ -251,9 +251,10 @@ function PLANS(){return vals(DB.plan)}
 function ymOf(t){return t.m||t.d.slice(0,7)}
 function txM(ym){return TXS().filter(function(t){return ymOf(t)===ym})}
 function sum(a,t){return r2(a.reduce(function(s,x){return x.t===t?s+x.v:s},0))}
-function active(p,ym){if(diff(ym,p.ym0)<0)return false;if(p.k==='parc'||p.k==='div')return p.n0+diff(ym,p.ym0)<=p.tot;return true}
+function active(p,ym){if(diff(ym,p.ym0)<0)return false;if(p.ymEnd&&diff(ym,p.ymEnd)>0)return false;if(p.k==='parc'||p.k==='div')return p.n0+diff(ym,p.ym0)<=p.tot;return true}
 function pnum(p,ym){return p.n0+diff(ym,p.ym0)}
-function paid(p,ym){return TXS().some(function(t){return t.pid===p.id&&ymOf(t)===ym})}
+function paid(p,ym){return TXS().some(function(t){return(t.pid===p.id||(p.club&&clubTxMatch(p,t)))&&ymOf(t)===ym})}
+function clubTxMatch(p,t){if(t.t!=='D'||t.pid||(p.src||'')!==(t.src||'')||Math.abs(t.v-p.v)>1)return false;var c=DB.mc[p.club],n=norm(t.desc);return n.indexOf('clube')>=0||n.indexOf('club')>=0||(c&&n.indexOf(norm(c.prog).split(' ')[0])>=0)}
 function billDue(p,ym){return p.nm?dayIn(addM(ym,1),p.day):dayIn(ym,p.day)}
 function fixPend(src,ym){return PLANS().filter(function(p){return p.src===src&&p.k!=='rin'&&p.post&&active(p,ym)&&!paid(p,ym)})}
 function fat(src,ym){var l=txM(ym).filter(function(t){return t.t==='D'&&t.src===src}),fx=fixPend(src,ym),lan=r2(l.reduce(function(z,t){return z+t.v},0));return{src:src,l:l,fx:fx,lan:lan,tot:r2(lan+fx.reduce(function(z,p){return z+p.v},0)),due:dueOf(src,ym),paid:!!DB.fat[src+'|'+ym]}}
@@ -444,7 +445,7 @@ function vMais(){
   var mi=miSummary(),code=HH?HH.invite_code:'';
   var ib=intlSummary(''),t=[['🌎','Contas internacionais',vals(DB.ac).length?'≈ '+money(ib.brl)+' · '+vals(DB.ac).length+' conta'+(vals(DB.ac).length>1?'s':''):'Dólar, euro e outras moedas','#ECFDF5','intl'],['✈️','Milhas',mi.total?int(mi.total)+' pontos':'Saldo e transferências','#E0F2FE','milhas'],['🧾','Contas fixas','Salários, contas, parcelas','#E6F6F3','planos'],['💳','Cartões','Fechamento, vencimento, pontos','#FEF3C7','cartoes'],['👥','Pessoas da casa',MEMBERS.length+' pessoa'+(MEMBERS.length!==1?'s':'')+' · convite','#FCE7F3','pessoas'],['📥','Importar dados','Backup do app antigo','#EEF2FF','importar'],['🚪','Sair','Desconectar este aparelho','#F1F5F9','logout']];
   return '<div class="hd"><div class="hi"><b>Mais</b></div></div><div class="tiles">'+t.map(function(x){return '<button class="tile" data-act="'+x[4]+'"><div class="ic" style="background:'+x[3]+'">'+x[0]+'</div><div><b>'+x[1]+'</b><small>'+esc(x[2])+'</small></div></button>'}).join('')+'</div>'+
-  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11c · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
+  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11d · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
 }
 function render(){
   if(!READY||!HH)return;
@@ -549,7 +550,19 @@ function plansList(){
 }
 
 /* ---------- milhas ---------- */
-function MIS(){return vals(DB.mi)}
+function MIS(){return vals(DB.mi).concat(virtMI(TODAY))}
+/* créditos automáticos: clubes (todo mês até cancelar) e bônus de promoções; não são gravados, então nunca duplicam */
+function clubDates(c,until){var o=[],st=c.start||TODAY,ym0=st.slice(0,7),lim=c.end&&c.end<until?c.end:until;
+  for(var k=0;k<600;k++){var d=k?dayIn(addM(ym0,k),c.day||+st.slice(8)):st;if(d>lim)break;o.push(d)}return o}
+function virtMI(until){var o=[],real=vals(DB.mi);
+  vals(DB.mc).forEach(function(c){clubDates(c,until).forEach(function(d){var ym=d.slice(0,7);if(real.some(function(m){return m.club===c.id&&m.ym===ym}))return;
+    o.push({id:'v~mc~'+c.id+'~'+ym,virt:'mc',ref:c.id,type:'acu',prog:c.prog,pts:c.pts,d:d,ym:ym,club:c.id,note:(c.name||'Clube')+' (automático)'})})});
+  vals(DB.mp).forEach(function(p){if(!p.auto||!p.pts||!p.cd||p.cd>until)return;if(real.some(function(m){return m.promo===p.id}))return;
+    o.push({id:'v~mp~'+p.id,virt:'mp',ref:p.id,type:'acu',prog:p.prog,pts:p.pts,d:p.cd,promo:p.id,note:'Bônus '+(p.title||'promoção')+' (automático)'})});
+  return o}
+function upcomingMI(){var lim=addDays(TODAY,62),all=virtMI(lim).filter(function(m){return m.d>TODAY});
+  vals(DB.mp).forEach(function(p){if(!p.auto&&p.pts&&p.cd&&p.cd>TODAY&&!vals(DB.mi).some(function(m){return m.promo===p.id}))all.push({virt:'mp',ref:p.id,prog:p.prog,pts:p.pts,d:p.cd,note:'Bônus '+(p.title||'promoção')+' (lançar à mão)'})});
+  return all.sort(function(a,b){return a.d.localeCompare(b.d)})}
 function miSummary(){
   var by={};MIS().forEach(function(m){var s=m.type==='ini'||m.type==='acu'||m.type==='com'?1:-1;
     if(m.type==='tra'){by[m.prog]=(by[m.prog]||0)-m.pts;by[m.dest]=(by[m.dest]||0)+Math.round(m.pts*(m.par||1)*(1+(m.bonus||0)/100))}
@@ -568,14 +581,16 @@ function vMilhas(){
   var est=estPts(cur);
   if(est.length){h+='<div class="sec"><b>Pontos do cartão em '+MES[+cur.slice(5,7)-1]+'</b></div><div class="card">';est.forEach(function(e){var c=card(e.src);h+='<div class="it"><div class="ic" style="background:#E0F2FE">💳</div><div class="mid"><b>'+esc(SRC(e.src)[1])+' → '+esc(e.prog)+'</b><small>'+money(e.brl)+' ÷ R$ '+num(rateOf('USD'))+' × '+String(c.pts).replace('.',',')+' pt/US$</small></div>'+(e.reg?'<div class="val" style="color:var(--mute)">✓ '+int(e.pts)+'</div>':'<button class="chip on" data-act="miest" data-v="'+esc(e.src)+'">+ '+int(e.pts)+'</button>')+'</div>'});h+='<p class="hint" style="padding:0 0 10px">Estimativa pelo total da fatura. Confira no extrato do programa e ajuste se precisar.</p></div>'}
   var mo=MIS().filter(function(m){return m.d.slice(0,7)===cur}),ya=MIS().filter(function(m){return m.d.slice(0,4)===y});
-  var agg=function(l){var o={acu:0,bon:0,res:0,tra:0,com:0,exp:0,brl:0};l.forEach(function(m){if(m.type==='acu'||m.type==='ini')o.acu+=m.type==='acu'?m.pts:0;if(m.type==='tra'){o.tra+=m.pts;o.bon+=Math.round(m.pts*(m.par||1)*(m.bonus||0)/100)}if(m.type==='res'){o.res+=m.pts;o.brl+=(m.brl||0)}if(m.type==='com')o.com+=m.pts;if(m.type==='exp')o.exp+=m.pts});return o};
+  var agg=function(l){var o={acu:0,bon:0,res:0,tra:0,com:0,exp:0,brl:0};l.forEach(function(m){if(m.type==='acu'){if(m.promo)o.bon+=m.pts;else o.acu+=m.pts}if(m.type==='tra'){o.tra+=m.pts;o.bon+=Math.round(m.pts*(m.par||1)*(m.bonus||0)/100)}if(m.type==='res'){o.res+=m.pts;o.brl+=(m.brl||0)}if(m.type==='com')o.com+=m.pts;if(m.type==='exp')o.exp+=m.pts});return o};
   var a=agg(mo),b=agg(ya);
   h+='<div class="sec"><b>Balanço</b></div><div class="card" style="padding:4px 14px"><div class="dl"><span></span><b style="display:flex;gap:18px"><span style="width:80px;text-align:right;color:var(--mute);font-size:12px">'+MES[+cur.slice(5,7)-1].slice(0,3)+'</span><span style="width:80px;text-align:right;color:var(--mute);font-size:12px">'+y+'</span></b></div>'+
   [['Acumulados',a.acu,b.acu],['Comprados',a.com,b.com],['Transferidos',a.tra,b.tra],['Bônus ganho',a.bon,b.bon],['Usados em resgates',a.res,b.res],['Expirados',a.exp,b.exp]].map(function(r){return '<div class="dl"><span>'+r[0]+'</span><b style="display:flex;gap:18px"><span style="width:80px;text-align:right">'+int(r[1])+'</span><span style="width:80px;text-align:right">'+int(r[2])+'</span></b></div>'}).join('')+
   (b.res&&b.brl?'<div class="dl"><span>Valor do milheiro nos resgates ('+y+')</span><b>'+money(r2(b.brl/b.res*1000))+'</b></div>':'')+'</div>';
+  var upc=upcomingMI();
+  if(upc.length)h+='<div class="sec"><b>Previstos</b></div><div class="card">'+upc.slice(0,6).map(function(m){return '<button class="it" data-act="'+(m.virt==='mc'?'editcl':'editpr')+'" data-id="'+esc(m.ref)+'"><div class="ic" style="background:#F1F5F9">⏳</div><div class="mid"><b>'+esc(m.prog)+'</b><small>'+dBr(m.d)+'/'+m.d.slice(2,4)+' · '+esc(m.note)+'</small></div><div class="val" style="color:var(--mute)">+'+int(m.pts)+'</div></button>'}).join('')+'</div>';
   h+='<div class="sec"><b>Movimentações de '+MES[+cur.slice(5,7)-1]+'</b></div><div class="card">';
   if(!mo.length)h+='<div class="empty">Nenhuma movimentação neste mês.</div>';
-  mo.sort(function(x,z){return x.d<z.d?1:-1}).forEach(function(m){var T=MTYPES[m.type];h+='<button class="it" data-act="editmi" data-id="'+esc(m.id)+'"><div class="ic" style="background:#E0F2FE">'+T[1]+'</div><div class="mid"><b>'+T[0]+(m.type==='tra'?': '+esc(m.prog)+' → '+esc(m.dest)+(m.bonus?' (+'+m.bonus+'%)':''):' · '+esc(m.prog))+'</b><small>'+dBr(m.d)+(m.note?' · '+esc(m.note):'')+(m.brl?' · '+money(m.brl):'')+'</small></div><div class="val'+(m.type==='acu'||m.type==='com'||m.type==='ini'?' pos':'')+'">'+(m.type==='acu'||m.type==='com'||m.type==='ini'?'+':'−')+int(m.pts)+'</div></button>'});
+  mo.sort(function(x,z){return x.d<z.d?1:-1}).forEach(function(m){var T=MTYPES[m.type];h+='<button class="it" data-act="'+(m.virt==='mc'?'editcl':m.virt==='mp'?'editpr':'editmi')+'" data-id="'+esc(m.virt?m.ref:m.id)+'"><div class="ic" style="background:#E0F2FE">'+(m.virt?'🔄':T[1])+'</div><div class="mid"><b>'+T[0]+(m.type==='tra'?': '+esc(m.prog)+' → '+esc(m.dest)+(m.bonus?' (+'+m.bonus+'%)':''):' · '+esc(m.prog))+'</b><small>'+dBr(m.d)+(m.note?' · '+esc(m.note):'')+(m.brl?' · '+money(m.brl):'')+'</small></div><div class="val'+(m.type==='acu'||m.type==='com'||m.type==='ini'?' pos':'')+'">'+(m.type==='acu'||m.type==='com'||m.type==='ini'?'+':'−')+int(m.pts)+'</div></button>'});
   return h+'</div><button class="save" data-act="newmi">+ Movimentação</button>';
 }
 function addDays(d,n){var x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate())}
@@ -592,9 +607,10 @@ function expLots(){var o=[];
   return o.sort(function(a,b){return a.done-b.done||a.d.localeCompare(b.d)})}
 function miAlerts(){var l=expLots().filter(function(x){return !x.done&&x.d>=TODAY&&days(x.d)<=90}),pr=vals(DB.mp).filter(function(p){return p.end>=TODAY});
   return{soon:l.length,soonPts:l.reduce(function(s,x){return s+x.pts},0),next:l[0],promos:pr.length,notReg:pr.filter(function(p){return !p.reg}).length}}
-function vPromos(){var l=vals(DB.mp).sort(function(a,b){return(a.end<TODAY)-(b.end<TODAY)||a.end.localeCompare(b.end)}),act=l.filter(function(p){return p.end>=TODAY}),old=l.filter(function(p){return p.end<TODAY});
+function promoGot(p){return vals(DB.mi).some(function(m){return m.promo===p.id})||(p.auto&&p.pts&&p.cd&&p.cd<=TODAY)}
+function vPromos(){var l=vals(DB.mp).sort(function(a,b){return(a.end<TODAY)-(b.end<TODAY)||a.end.localeCompare(b.end)}),act=l.filter(function(p){return p.end>=TODAY||(p.pts&&!promoGot(p))}),old=l.filter(function(p){return !(p.end>=TODAY||(p.pts&&!promoGot(p)))});
   var row=function(p){var K=PKIND[p.kind]||PKIND.out,n=days(p.end),on=n>=0;
-    return '<div class="it"'+(on?'':' style="opacity:.55"')+'><button class="check'+(p.reg?' on':'')+'" data-act="preg" data-id="'+esc(p.id)+'" aria-label="Inscrito">'+(p.reg?'✓':'')+'</button><button class="mid" style="text-align:left" data-act="editpr" data-id="'+esc(p.id)+'"><b>'+K[1]+' '+(p.kind==='tra'?esc(p.from||'?')+' → '+esc(p.prog):esc(p.prog))+(p.bonus?' +'+p.bonus+'%':'')+'</b><small>'+esc(p.title||K[0])+' · até '+dBr(p.end)+(on?' · <span style="color:'+(n<=3?'var(--red)':'var(--amb)')+'">'+left(p.end)+'</span>':'')+(p.reg?' · ✓ inscrito':on?' · <span style="color:var(--red);font-weight:700">falta se inscrever</span>':'')+'</small></button>'+(on&&p.kind==='tra'?'<button class="chip on" data-act="pruse" data-id="'+esc(p.id)+'">Usar</button>':'')+'</div>'};
+    return '<div class="it"'+(on?'':' style="opacity:.55"')+'><button class="check'+(p.reg?' on':'')+'" data-act="preg" data-id="'+esc(p.id)+'" aria-label="Inscrito">'+(p.reg?'✓':'')+'</button><button class="mid" style="text-align:left" data-act="editpr" data-id="'+esc(p.id)+'"><b>'+K[1]+' '+(p.kind==='tra'?esc(p.from||'?')+' → '+esc(p.prog):esc(p.prog))+(p.bonus?' +'+p.bonus+'%':'')+'</b><small>'+esc(p.title||K[0])+' · até '+dBr(p.end)+(on?' · <span style="color:'+(n<=3?'var(--red)':'var(--amb)')+'">'+left(p.end)+'</span>':'')+(p.reg?' · ✓ inscrito':on?' · <span style="color:var(--red);font-weight:700">falta se inscrever</span>':'')+(p.pts?'<br>'+(promoGot(p)?'✓ '+int(p.pts)+' pts no saldo':'+'+int(p.pts)+' pts '+(p.cd?'previsto '+dBr(p.cd):'sem data')+(p.auto?' · automático':'')):'')+'</small></button>'+(p.pts&&!promoGot(p)&&!p.auto?'<button class="chip on" data-act="prcred" data-id="'+esc(p.id)+'">Lançar</button>':'')+(on&&p.kind==='tra'?'<button class="chip on" data-act="pruse" data-id="'+esc(p.id)+'">Usar</button>':'')+'</div>'};
   var h='<div class="sec"><b>Ativas</b><button data-act="newpr">+ Promoção</button></div><div class="card">'+(act.length?act.map(row).join(''):'<div class="empty">Nenhuma promoção ativa. Viu uma? Toque em “+ Promoção” para não perder o prazo.</div>')+'</div>';
   if(old.length)h+='<div class="sec"><b>Encerradas</b></div><div class="card">'+old.slice(0,10).map(row).join('')+'</div>';
   return h+'<p class="hint">Marque o círculo quando fizer a inscrição. “Usar” abre uma transferência já com o bônus da promoção.</p>'}
@@ -602,35 +618,40 @@ function prForm(){var f=PRF,h='<b style="font-size:19px;display:block;margin:2px
   if(f.kind==='tra')h+='<div class="irow"><span>De</span>'+selProg('r-from',f.from)+'</div>';
   h+='<div class="irow"><span>'+(f.kind==='tra'?'Para':'Programa')+'</span>'+selProg('r-prog',f.prog)+'</div><div class="irow"><span>Bônus (%)</span><input class="fin" id="r-bonus" inputmode="numeric" value="'+esc(f.bonus)+'" placeholder="ex.: 80" style="max-width:90px"></div>'+
   '<div class="irow"><span>Válida até</span><input class="fin" id="r-end" type="date" value="'+esc(f.end)+'"></div><div class="irow"><span>Nome / regra</span><input class="fin" id="r-title" value="'+esc(f.title)+'" placeholder="ex.: Black Friday, clube +20%"></div>'+
-  '<div class="irow"><div>Já me inscrevi<small>muitas promoções só valem com inscrição antes</small></div><button class="tog'+(f.reg?' on':'')+'" data-act="prreg"></button></div></div>';
+  '<div class="irow"><div>Já me inscrevi<small>muitas promoções só valem com inscrição antes</small></div><button class="tog'+(f.reg?' on':'')+'" data-act="prreg"></button></div></div>'+
+  '<div class="info"><div class="irow"><div>Pontos de bônus que vou ganhar<small>opcional · o que a promoção vai creditar</small></div><input class="fin" id="r-pts" inputmode="numeric" value="'+esc(f.pts)+'" placeholder="0" style="max-width:100px"></div>'+
+  '<div class="irow"><span>Crédito previsto em</span><input class="fin" id="r-cd" type="date" value="'+esc(f.cd)+'"></div>'+
+  '<div class="irow"><div>Somar no saldo sozinho na data<small>desligado: você lança à mão quando cair</small></div><button class="tog'+(f.auto?' on':'')+'" data-act="prauto"></button></div></div>'+(f.kind==='tra'?'<p class="hint">Em transferência bonificada, se você lançar a transferência pelo botão “Usar”, o bônus já entra junto. Só preencha os pontos acima se o bônus cair separado.</p>':'');
   openSheet(h+'<button class="save" data-act="savepr">Salvar</button>'+(f.id?'<button class="ghost" data-act="delpr">Excluir</button>':''))}
-function grabR(){['from','prog','bonus','end','title'].forEach(function(k){var e=document.getElementById('r-'+k);if(e)PRF[k]=e.value})}
+function grabR(){['from','prog','bonus','end','title','pts','cd'].forEach(function(k){var e=document.getElementById('r-'+k);if(e)PRF[k]=e.value})}
 function savePr(){grabR();var f=PRF;if(!f.end){toast('Escolha até quando vale');return}if(f.kind==='tra'&&f.from===f.prog){toast('Escolha programas diferentes');return}
-  var id=f.id||uid(),o=DB.mp[id]||{};put('mp',id,Object.assign({},o,{id:id,kind:f.kind,from:f.kind==='tra'?f.from:'',prog:f.prog,bonus:parseInt(f.bonus,10)||0,end:f.end,title:(f.title||'').trim(),reg:!!f.reg,by:o.by||ME.id}));PRF=null;closeSheet();toast('Promoção salva')}
+  var id=f.id||uid(),o=DB.mp[id]||{};put('mp',id,Object.assign({},o,{id:id,kind:f.kind,from:f.kind==='tra'?f.from:'',prog:f.prog,bonus:parseInt(f.bonus,10)||0,end:f.end,title:(f.title||'').trim(),reg:!!f.reg,pts:parseInt(String(f.pts||'').replace(/\D/g,''),10)||0,cd:f.cd||'',auto:!!f.auto,by:o.by||ME.id}));PRF=null;closeSheet();toast('Promoção salva')}
 function clubPaidMonth(c,ym){return MIS().some(function(m){return m.club===c.id&&m.ym===ym})}
 function vClubs(){var l=vals(DB.mc).sort(function(a,b){return(a.active===false)-(b.active===false)||a.prog.localeCompare(b.prog)}),on=l.filter(function(c){return c.active!==false});
   var cost=on.reduce(function(s,c){return s+c.price},0),pts=on.reduce(function(s,c){return s+c.pts},0);
   var h='';if(on.length)h+='<div class="card" style="padding:12px 14px;margin-top:12px"><div class="lg"><span>Custo por mês</span><b>'+money(r2(cost))+'</b></div><div class="lg"><span>Pontos por mês</span><b>'+int(pts)+'</b></div><div class="lg"><span>Milheiro médio dos clubes</span><b>'+(pts?money(r2(cost/pts*1000)):'—')+'</b></div></div>';
   h+='<div class="sec"><b>Clubes</b><button data-act="newcl">+ Clube</button></div><div class="card">';
   if(!l.length)h+='<div class="empty">Nenhum clube. Ex.: Clube Smiles, Clube Livelo, Clube LATAM Pass.</div>';
-  l.forEach(function(c){var ok=clubPaidMonth(c,cur),act=c.active!==false;
-    h+='<div class="it"'+(act?'':' style="opacity:.55"')+'><div class="ic" style="background:#E0F2FE">🎟️</div><button class="mid" style="text-align:left" data-act="editcl" data-id="'+esc(c.id)+'"><b>'+esc(c.name||('Clube '+c.prog))+'</b><small>'+int(c.pts)+' pts/mês · '+money(c.price)+'/mês · milheiro '+(c.pts?money(r2(c.price/c.pts*1000)):'—')+(c.bonus?' · +'+c.bonus+'% nas transferências':'')+(act?'':' · cancelado')+'</small></button>'+
-      (act?(ok?'<span class="chip" style="color:var(--pri)">✓ '+MES[+cur.slice(5,7)-1].slice(0,3)+'</span>':'<button class="chip on" data-act="clcred" data-id="'+esc(c.id)+'">+ '+int(c.pts)+'</button>'):'')+'</div>'});
-  return h+'</div><p class="hint">Toque em “+ pontos” quando o crédito do mês cair no programa: entra no saldo de milhas. A mensalidade pode ir para as contas fixas, junto da fatura do cartão.</p>'}
+  l.forEach(function(c){var act=c.active!==false,got=clubDates(c,TODAY),nx=act?clubDates(c,addDays(TODAY,40)).filter(function(d){return d>TODAY})[0]:null;
+    h+='<div class="it"'+(act?'':' style="opacity:.55"')+'><div class="ic" style="background:#E0F2FE">🎟️</div><button class="mid" style="text-align:left" data-act="editcl" data-id="'+esc(c.id)+'"><b>'+esc(c.name||('Clube '+c.prog))+'</b><small>'+int(c.pts)+' pts/mês · '+money(c.price)+'/mês · milheiro '+(c.pts?money(r2(c.price/c.pts*1000)):'—')+(c.bonus?' · +'+c.bonus+'% nas transferências':'')+'<br>'+(act?'Ativo desde '+dBr(c.start||TODAY)+'/'+(c.start||TODAY).slice(2,4):'Cancelado em '+dBr(c.end)+'/'+c.end.slice(2,4))+' · '+got.length+' crédito'+(got.length!==1?'s':'')+' = '+int(got.length*c.pts)+' pts'+(nx?' · próximo '+dBr(nx):'')+'</small></button>'+
+      '</div>'});
+  return h+'</div><p class="hint">Os pontos do clube entram sozinhos no saldo todo mês, no dia da cobrança, até você cancelar. A mensalidade vai uma vez só para as contas fixas e aparece na fatura do cartão escolhido.</p>'}
 function clForm(){var f=CLF,h='<b style="font-size:19px;display:block;margin:2px 4px 12px">'+(f.id?'Editar':'Novo')+' clube</b><div class="info">'+
   '<div class="irow"><span>Programa</span>'+selProg('l-prog',f.prog)+'</div><div class="irow"><span>Nome do plano</span><input class="fin" id="l-name" value="'+esc(f.name)+'" placeholder="ex.: Clube Smiles 2.000"></div>'+
   '<div class="irow"><span>Pontos por mês</span><input class="fin" id="l-pts" inputmode="numeric" value="'+esc(f.pts)+'" placeholder="0" style="max-width:100px"></div><div class="irow"><span>Preço por mês</span><input class="fin" id="l-price" inputmode="decimal" value="'+esc(f.price)+'" placeholder="R$ 0,00" style="max-width:110px"></div>'+
-  '<div class="irow"><span>Dia da cobrança</span><input class="fin" id="l-day" inputmode="numeric" value="'+esc(f.day)+'" style="max-width:70px"></div><div class="irow"><span>Pago com</span><select class="sel" id="l-src"><option value="">Boleto / outro</option>'+CFG().srcs.map(function(x){return '<option'+(f.src===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>'+
+  '<div class="irow"><span>Assinei em</span><input class="fin" id="l-start" type="date" value="'+esc(f.start)+'"></div><div class="irow"><span>Dia da cobrança / crédito</span><input class="fin" id="l-day" inputmode="numeric" value="'+esc(f.day)+'" style="max-width:70px"></div><div class="irow"><span>Pago com</span><select class="sel" id="l-src"><option value="">Boleto / outro</option>'+CFG().srcs.map(function(x){return '<option'+(f.src===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>'+
   '<div class="irow"><span>Bônus extra para assinantes (%)</span><input class="fin" id="l-bonus" inputmode="numeric" value="'+esc(f.bonus)+'" placeholder="0" style="max-width:80px"></div>'+
   '<div class="irow"><div>Mensalidade nas contas fixas<small>aparece em Contas e na fatura do cartão</small></div><button class="tog'+(f.fix?' on':'')+'" data-act="clfix"></button></div>'+
-  (f.id?'<div class="irow"><div>Clube ativo<small>desligue se cancelar a assinatura</small></div><button class="tog'+(f.active?' on':'')+'" data-act="clact"></button></div>':'')+'</div>';
+  (f.id?'<div class="irow"><div>Clube ativo<small>desligue ao cancelar: param os pontos e a mensalidade</small></div><button class="tog'+(f.active?' on':'')+'" data-act="clact"></button></div>'+(f.active?'':'<div class="irow"><span>Cancelado em</span><input class="fin" id="l-end" type="date" value="'+esc(f.end||TODAY)+'"></div>'):'')+'</div>';
   openSheet(h+'<button class="save" data-act="savecl">Salvar</button>'+(f.id?'<button class="ghost" data-act="delcl">Excluir</button>':''))}
-function grabL(){['prog','name','pts','price','day','src','bonus'].forEach(function(k){var e=document.getElementById('l-'+k);if(e)CLF[k]=e.value})}
+function grabL(){['prog','name','pts','price','day','src','bonus','start','end'].forEach(function(k){var e=document.getElementById('l-'+k);if(e)CLF[k]=e.value})}
 function saveCl(){grabL();var f=CLF,pts=parseInt(String(f.pts).replace(/\D/g,''),10)||0,price=parseBR(f.price);if(!pts){toast('Digite os pontos por mês');return}
   var id=f.id||uid(),o=DB.mc[id]||{},day=Math.min(31,Math.max(1,parseInt(f.day,10)||1)),name=(f.name||'').trim()||('Clube '+f.prog);
-  var c=Object.assign({},o,{id:id,prog:f.prog,name:name,pts:pts,price:price,day:day,src:f.src||'',bonus:parseInt(f.bonus,10)||0,active:f.id?!!f.active:true,by:o.by||ME.id});
-  var want=f.fix&&c.active&&price>0;
-  if(want){var pid=o.plan&&DB.plan[o.plan]?o.plan:uid(),po=DB.plan[pid]||{};put('plan',pid,Object.assign({},po,{id:pid,k:'rec',name:name,v:price,day:day,src:c.src,cat:'assinaturas',nm:false,post:true,n0:1,tot:0,ym0:po.ym0||cur}));c.plan=pid}
+  var c=Object.assign({},o,{id:id,prog:f.prog,name:name,pts:pts,price:price,day:day,src:f.src||'',bonus:parseInt(f.bonus,10)||0,active:f.id?!!f.active:true,start:f.start||TODAY,by:o.by||ME.id});
+  if(c.active)delete c.end;else c.end=f.end||TODAY;
+  var want=f.fix&&price>0;
+  if(want){var pid=o.plan&&DB.plan[o.plan]?o.plan:uid(),po=DB.plan[pid]||{},pl=Object.assign({},po,{id:pid,k:'rec',name:name,v:price,day:day,src:c.src,cat:'assinaturas',nm:false,post:true,n0:1,tot:0,club:id,ym0:po.ym0||(c.start.slice(0,7)>TODAY.slice(0,7)?c.start.slice(0,7):TODAY.slice(0,7))});
+    if(c.active)delete pl.ymEnd;else pl.ymEnd=c.end.slice(0,7);put('plan',pid,pl);c.plan=pid}
   else if(o.plan&&DB.plan[o.plan]){del('plan',o.plan);delete c.plan}
   put('mc',id,c);CLF=null;closeSheet();toast('Clube salvo')}
 function vVenc(){var l=expLots(),up=l.filter(function(x){return !x.done&&x.d>=TODAY}),past=l.filter(function(x){return x.done||x.d<TODAY});
@@ -857,18 +878,20 @@ document.addEventListener('click',function(e){
     case 'miest':var es=estPts(cur).filter(function(x){return x.src===v})[0];MF={type:'acu',prog:es.prog,dest:'',pts:String(es.pts),bonus:'',par:'1',brl:'',exp:addDays(TODAY,365*3),d:dueOf(v,cur),note:'Fatura '+SRC(v)[1]+' de '+MES[+cur.slice(5,7)-1],src:v,ym:cur};miForm();break;
     case 'mt':grabM();MF.type=v;miForm();break;
     case 'mtab':MTAB=v;tab='milhas';render();break;
-    case 'newpr':PRF={kind:'tra',from:'Livelo',prog:'Smiles',bonus:'',end:addDays(TODAY,7),title:'',reg:false};prForm();break;
-    case 'editpr':var pr=DB.mp[id];PRF=Object.assign({},pr,{bonus:pr.bonus?String(pr.bonus):''});prForm();break;
+    case 'newpr':PRF={kind:'tra',from:'Livelo',prog:'Smiles',bonus:'',end:addDays(TODAY,7),title:'',reg:false,pts:'',cd:'',auto:true};prForm();break;
+    case 'prauto':grabR();PRF.auto=!PRF.auto;prForm();break;
+    case 'prcred':var pc=DB.mp[id],mm3={id:uid(),type:'acu',prog:pc.prog,pts:pc.pts,d:pc.cd&&pc.cd<=TODAY?pc.cd:TODAY,note:'Bônus '+(pc.title||'promoção'),promo:pc.id,by:ME.id};put('mi',mm3.id,mm3);toast('✓ '+int(pc.pts)+' pontos de bônus lançados');break;
+    case 'editpr':var pr=DB.mp[id];PRF=Object.assign({},pr,{bonus:pr.bonus?String(pr.bonus):'',pts:pr.pts?String(pr.pts):'',cd:pr.cd||'',auto:!!pr.auto});prForm();break;
     case 'prk':grabR();PRF.kind=v;prForm();break;
     case 'prreg':grabR();PRF.reg=!PRF.reg;prForm();break;
     case 'savepr':savePr();break;
     case 'delpr':var prid=PRF.id;PRF=null;closeSheet();undoable('mp',prid,'Promoção excluída');break;
     case 'preg':var pp=DB.mp[id];put('mp',id,Object.assign({},pp,{reg:!pp.reg}));toast(pp.reg?'Inscrição desmarcada':'✓ Inscrito');break;
     case 'pruse':var pu=DB.mp[id];MF={type:'tra',prog:pu.from||'Livelo',dest:pu.prog,pts:'',bonus:String(pu.bonus||''),par:'1',brl:'',exp:'',d:TODAY,note:pu.title||'Promoção +'+pu.bonus+'%'};miForm();break;
-    case 'newcl':CLF={prog:'Smiles',name:'',pts:'',price:'',day:10,src:'Crédito Elo',bonus:'',fix:true,active:true};clForm();break;
+    case 'newcl':CLF={prog:'Smiles',name:'',pts:'',price:'',day:+TODAY.slice(8),start:TODAY,src:'Crédito Elo',bonus:'',fix:true,active:true};clForm();break;
     case 'editcl':var cl=DB.mc[id];CLF=Object.assign({},cl,{pts:String(cl.pts),price:num(cl.price),bonus:cl.bonus?String(cl.bonus):'',fix:!!(cl.plan&&DB.plan[cl.plan]),active:cl.active!==false});clForm();break;
     case 'clfix':grabL();CLF.fix=!CLF.fix;clForm();break;
-    case 'clact':grabL();CLF.active=!CLF.active;clForm();break;
+    case 'clact':grabL();CLF.active=!CLF.active;if(!CLF.active&&!CLF.end)CLF.end=TODAY;clForm();break;
     case 'savecl':saveCl();break;
     case 'delcl':var clid=CLF.id,clp=DB.mc[clid].plan;CLF=null;closeSheet();if(clp&&DB.plan[clp])del('plan',clp);undoable('mc',clid,'Clube excluído');break;
     case 'clcred':var cc2=DB.mc[id],mm2={id:uid(),type:'acu',prog:cc2.prog,pts:cc2.pts,d:TODAY,note:cc2.name+' · '+MES[+cur.slice(5,7)-1],club:cc2.id,ym:cur,by:ME.id};put('mi',mm2.id,mm2);toast('✓ '+int(cc2.pts)+' pontos do clube');break;
