@@ -347,7 +347,7 @@ function openHouse(hid){
     return sb.from('members').select('user_id,name').eq('household_id',hid).then(function(m){MEMBERS=m.data||[]}).then(loadAll).then(function(){showApp();subscribe()});
   }).catch(function(e){if(READY){toast('Sem conexão: mostrando o que está salvo no aparelho')}else authScreen('in','Erro ao abrir: '+esc(e.message||e))});
 }
-function showApp(){document.getElementById('nav').style.display='';render()}
+function showApp(){document.getElementById('nav').style.display='';render();fetchRates(false)}
 function authErr(e){var m=(e&&e.message)||'';if(/invalid login/i.test(m))return 'E-mail ou senha incorretos.';if(/not confirmed/i.test(m))return 'Confirme seu e-mail pelo link que enviamos e depois entre.';if(/database error saving new user|signups_closed/i.test(m))return 'Cadastros fechados: este app só aceita as contas da casa.';if(/already registered/i.test(m))return 'Este e-mail já tem conta. Toque em Entrar.';if(/password/i.test(m))return 'A senha precisa ter pelo menos 6 caracteres.';return esc(m||'Algo deu errado. Tente de novo.')}
 
 /* ---------- telas ---------- */
@@ -438,7 +438,7 @@ function vMais(){
   var mi=miSummary(),code=HH?HH.invite_code:'';
   var ib=intlSummary(''),t=[['🌎','Contas internacionais',vals(DB.ac).length?'≈ '+money(ib.brl)+' · '+vals(DB.ac).length+' conta'+(vals(DB.ac).length>1?'s':''):'Dólar, euro e outras moedas','#ECFDF5','intl'],['✈️','Milhas',mi.total?int(mi.total)+' pontos':'Saldo e transferências','#E0F2FE','milhas'],['🧾','Contas fixas','Salários, contas, parcelas','#E6F6F3','planos'],['💳','Cartões','Fechamento, vencimento, pontos','#FEF3C7','cartoes'],['👥','Pessoas da casa',MEMBERS.length+' pessoa'+(MEMBERS.length!==1?'s':'')+' · convite','#FCE7F3','pessoas'],['📥','Importar dados','Backup do app antigo','#EEF2FF','importar'],['🚪','Sair','Desconectar este aparelho','#F1F5F9','logout']];
   return '<div class="hd"><div class="hi"><b>Mais</b></div></div><div class="tiles">'+t.map(function(x){return '<button class="tile" data-act="'+x[4]+'"><div class="ic" style="background:'+x[3]+'">'+x[0]+'</div><div><b>'+x[1]+'</b><small>'+esc(x[2])+'</small></div></button>'}).join('')+'</div>'+
-  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11 · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
+  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11b · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
 }
 function render(){
   if(!READY||!HH)return;
@@ -550,12 +550,12 @@ function miSummary(){
     else by[m.prog]=(by[m.prog]||0)+s*m.pts});
   var total=0;Object.keys(by).forEach(function(k){total+=by[k]});return{by:by,total:total};
 }
-function estPts(ym){var r=[];Object.keys(CFG().cards).forEach(function(s){var c=card(s);if(!c.pts)return;var f=fat(s,ym);if(f.tot>0)r.push({src:s,prog:c.prog||'Livelo',brl:f.tot,pts:Math.round(f.tot/CFG().usd*c.pts),reg:MIS().some(function(m){return m.type==='acu'&&m.src===s&&m.ym===ym})})});return r}
+function estPts(ym){var r=[];Object.keys(CFG().cards).forEach(function(s){var c=card(s);if(!c.pts)return;var f=fat(s,ym);if(f.tot>0)r.push({src:s,prog:c.prog||'Livelo',brl:f.tot,pts:Math.round(f.tot/rateOf('USD')*c.pts),reg:MIS().some(function(m){return m.type==='acu'&&m.src===s&&m.ym===ym})})});return r}
 function vMilhas(){
   var s=miSummary(),y=cur.slice(0,4),h='<div class="hd"><div class="hi"><small><button class="link" style="padding:0" data-tab="mais">‹ Mais</button></small><b>Milhas</b></div><div class="month"><button data-act="prev">‹</button>'+mLabel(cur)+'<button data-act="next">›</button></div></div>';
   h+='<div class="hero" style="background:radial-gradient(120% 140% at 100% 0%,#38BDF8 0%,#0369A1 50%,#0C4A6E 100%);box-shadow:0 12px 24px rgba(3,105,161,.25)"><small>Total em todos os programas</small><div class="big">'+int(s.total)+' <span style="font-size:18px;font-weight:600">pontos</span></div><div class="io">'+(Object.keys(s.by).length?Object.keys(s.by).sort(function(a,b){return s.by[b]-s.by[a]}).slice(0,3).map(function(k){return '<div>'+esc(k)+'<b>'+int(s.by[k])+'</b></div>'}).join(''):'<div>Nenhum saldo lançado<b>Toque em “+ Movimentação”</b></div>')+'</div></div>';
   var est=estPts(cur);
-  if(est.length){h+='<div class="sec"><b>Pontos do cartão em '+MES[+cur.slice(5,7)-1]+'</b></div><div class="card">';est.forEach(function(e){var c=card(e.src);h+='<div class="it"><div class="ic" style="background:#E0F2FE">💳</div><div class="mid"><b>'+esc(SRC(e.src)[1])+' → '+esc(e.prog)+'</b><small>'+money(e.brl)+' ÷ R$ '+num(CFG().usd)+' × '+String(c.pts).replace('.',',')+' pt/US$</small></div>'+(e.reg?'<div class="val" style="color:var(--mute)">✓ '+int(e.pts)+'</div>':'<button class="chip on" data-act="miest" data-v="'+esc(e.src)+'">+ '+int(e.pts)+'</button>')+'</div>'});h+='<p class="hint" style="padding:0 0 10px">Estimativa pelo total da fatura. Confira no extrato do programa e ajuste se precisar.</p></div>'}
+  if(est.length){h+='<div class="sec"><b>Pontos do cartão em '+MES[+cur.slice(5,7)-1]+'</b></div><div class="card">';est.forEach(function(e){var c=card(e.src);h+='<div class="it"><div class="ic" style="background:#E0F2FE">💳</div><div class="mid"><b>'+esc(SRC(e.src)[1])+' → '+esc(e.prog)+'</b><small>'+money(e.brl)+' ÷ R$ '+num(rateOf('USD'))+' × '+String(c.pts).replace('.',',')+' pt/US$</small></div>'+(e.reg?'<div class="val" style="color:var(--mute)">✓ '+int(e.pts)+'</div>':'<button class="chip on" data-act="miest" data-v="'+esc(e.src)+'">+ '+int(e.pts)+'</button>')+'</div>'});h+='<p class="hint" style="padding:0 0 10px">Estimativa pelo total da fatura. Confira no extrato do programa e ajuste se precisar.</p></div>'}
   var mo=MIS().filter(function(m){return m.d.slice(0,7)===cur}),ya=MIS().filter(function(m){return m.d.slice(0,4)===y});
   var agg=function(l){var o={acu:0,bon:0,res:0,tra:0,com:0,exp:0,brl:0};l.forEach(function(m){if(m.type==='acu'||m.type==='ini')o.acu+=m.type==='acu'?m.pts:0;if(m.type==='tra'){o.tra+=m.pts;o.bon+=Math.round(m.pts*(m.par||1)*(m.bonus||0)/100)}if(m.type==='res'){o.res+=m.pts;o.brl+=(m.brl||0)}if(m.type==='com')o.com+=m.pts;if(m.type==='exp')o.exp+=m.pts});return o};
   var a=agg(mo),b=agg(ya);
@@ -595,7 +595,20 @@ var ATYPES={ini:['Saldo inicial','🏁',1],dep:['Envio do Brasil','⬇️',1],re
 var IOWN='',AF=null,MVF=null;
 function curSym(c){return(CURS[c]||['💱',c])[1]}
 function fmtCur(v,c){return curSym(c)+' '+(v<0?'−':'')+num(v)}
-function rateOf(c){var r=CFG().rates[c];if(c==='USD')return r||CFG().usd;return r||0}
+var LIVE={},LIVE_T=0,LIVE_ERR=false;
+try{var lv=JSON.parse(localStorage.getItem('financas-cotacoes')||'null');if(lv){LIVE=lv.r||{};LIVE_T=lv.t||0}}catch(e){}
+function rateOf(c){if(LIVE[c])return LIVE[c];var r=CFG().rates[c];if(c==='USD')return r||CFG().usd;return r||0}
+function fetchRates(force){
+  if(!force&&Date.now()-LIVE_T<30*60*1000)return Promise.resolve();
+  var cs={USD:1,EUR:1};vals(DB.ac).forEach(function(a){cs[a.cur]=1});var list=Object.keys(cs);
+  var done=function(r){LIVE=r;LIVE_T=Date.now();LIVE_ERR=false;try{localStorage.setItem('financas-cotacoes',JSON.stringify({r:LIVE,t:LIVE_T}))}catch(e){}if(READY&&!document.getElementById('sheet').classList.contains('on'))render()};
+  var j=function(u){return fetch(u,{cache:'no-store'}).then(function(x){if(!x.ok)throw 0;return x.json()})};
+  return j('https://economia.awesomeapi.com.br/json/last/'+list.map(function(c){return c+'-BRL'}).join(',')).then(function(d){var r={};list.forEach(function(c){var o=d[c+'BRL'];if(o&&+o.bid)r[c]=r2(+o.bid*10000)/10000});if(!r.USD)throw 0;done(r)})
+  .catch(function(){return j('https://open.er-api.com/v6/latest/BRL').then(function(d){var r={};list.forEach(function(c){var x=d.rates&&d.rates[c];if(x)r[c]=Math.round(1/x*10000)/10000});if(!r.USD)throw 0;done(r)})})
+  .catch(function(){LIVE_ERR=true});
+}
+function liveTxt(){if(!LIVE_T)return LIVE_ERR?'Sem conexão com a cotação agora.':'Buscando cotação…';var d=new Date(LIVE_T);return 'Cotação comercial atualizada '+(new Date().toDateString()===d.toDateString()?'hoje':pad(d.getDate())+'/'+pad(d.getMonth()+1))+' às '+pad(d.getHours())+':'+pad(d.getMinutes())+(LIVE_ERR?' (sem conexão para atualizar)':'')}
+function rnum(v){return v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4})}
 function acBal(id){var b=0,ms=vals(DB.am).filter(function(m){return m.ac===id}).sort(function(a,z){return a.d<z.d?-1:a.d>z.d?1:(a.ts||0)-(z.ts||0)});
   ms.forEach(function(m){if(m.type==='aj')b=m.amt;else b+=ATYPES[m.type][2]*m.amt});return r2(b)}
 function acCost(id){var brl=0,amt=0;vals(DB.am).forEach(function(m){if(m.ac===id&&m.type==='dep'&&m.brl){brl+=m.brl;amt+=m.amt}});return amt?brl/amt:0}
@@ -659,7 +672,7 @@ function saveAm(){grabV();var f=MVF,amt=parseBR(f.amt);if(!DB.ac[f.ac]){toast('E
   var brl=parseBR(f.brl);if((f.type==='dep'||f.type==='saq')&&brl)m.brl=brl;else delete m.brl;
   put('am',id,m);MVF=null;closeSheet();toast('Movimentação salva')}
 function ratesSheet(){var used={USD:1};vals(DB.ac).forEach(function(a){used[a.cur]=1});
-  openSheet('<b style="font-size:19px;display:block;margin:2px 4px 4px">Cotações</b><p class="hint" style="margin:0 4px 12px">Quanto vale 1 unidade de cada moeda em reais. Usado para mostrar o saldo em reais; atualize quando quiser.</p><div class="info">'+Object.keys(used).map(function(c){return '<div class="irow"><span>'+(CURS[c]||['💱'])[0]+' '+esc(CURS[c]?CURS[c][2]:c)+'</span><input class="fin" data-rate="'+c+'" inputmode="decimal" value="'+(rateOf(c)?num(rateOf(c)):'')+'" placeholder="R$ 0,00" style="max-width:110px"></div>'}).join('')+'</div><button class="save" data-act="close">Pronto</button>');
+  openSheet('<b style="font-size:19px;display:block;margin:2px 4px 4px">Cotações</b><p class="hint" style="margin:0 4px 12px">'+liveTxt()+'. Atualiza sozinha quando você abre o app (se passou mais de 30 minutos).</p><div class="info">'+Object.keys(used).map(function(c){var lv=LIVE[c];return '<div class="irow"><span>'+(CURS[c]||['💱'])[0]+' '+esc(CURS[c]?CURS[c][2]:c)+'</span>'+(lv?'<b style="font-variant-numeric:tabular-nums">R$ '+rnum(lv)+'</b>':'<input class="fin" data-rate="'+c+'" inputmode="decimal" value="'+(rateOf(c)?num(rateOf(c)):'')+'" placeholder="R$ 0,00" style="max-width:110px">')+'</div>'}).join('')+'</div><button class="save" data-act="rfresh">↻ Atualizar agora</button><button class="ghost" style="color:var(--ink2)" data-act="close">Fechar</button>');
 }
 
 /* ---------- ajustes ---------- */
@@ -669,7 +682,7 @@ function cardsSheet(){
     h+='<div class="info" style="padding:8px 12px"><div style="font-weight:700;padding:4px 0 2px">'+S[0]+' '+esc(S[1])+'</div>'+
     [['close','Fecha dia',1],['due','Vence dia',1],['pts','Pontos por dólar',.1]].map(function(y){return '<div class="irow"><span>'+y[1]+'</span><div class="step"><button data-act="cstep" data-v="'+esc(k)+'|'+y[0]+'|-'+y[2]+'" aria-label="Menos">−</button><b>'+String(x[y[0]]||0).replace('.',',')+'</b><button data-act="cstep" data-v="'+esc(k)+'|'+y[0]+'|'+y[2]+'" aria-label="Mais">+</button></div></div>'}).join('')+
     (x.pts?'<div class="irow"><span>Programa</span><input class="fin" data-cprog="'+esc(k)+'" value="'+esc(x.prog||'')+'" style="max-width:130px"></div>':'')+'</div>'});
-  h+='<div class="info"><div class="irow"><span>Cotação do dólar para pontos</span><input class="fin" id="c-usd" inputmode="decimal" value="'+num(c.usd)+'" style="max-width:90px"></div><div class="irow"><span>Dia que separa as quinzenas</span><div class="step"><button data-act="split" data-v="-1">−</button><b>'+c.split+'</b><button data-act="split" data-v="1">+</button></div></div></div>';
+  h+='<div class="info"><div class="irow"><span>Dólar para pontos<small>'+(LIVE.USD?'cotação do dia, automática':'sem internet: valor manual')+'</small></span>'+(LIVE.USD?'<b>R$ '+rnum(LIVE.USD)+'</b>':'<input class="fin" id="c-usd" inputmode="decimal" value="'+num(c.usd)+'" style="max-width:90px">')+'</div><div class="irow"><span>Dia que separa as quinzenas</span><div class="step"><button data-act="split" data-v="-1">−</button><b>'+c.split+'</b><button data-act="split" data-v="1">+</button></div></div></div>';
   openSheet(h+'<button class="save" data-act="close">Pronto</button>');
 }
 function setCfg(fn){var c=JSON.parse(JSON.stringify(CFG()));fn(c);put('cfg','main',c)}
@@ -752,8 +765,8 @@ document.addEventListener('click',function(e){
     case 'impfile':document.getElementById('imp').click();break;
     case 'implocal':importData(oldLocal());break;
     case 'clrlocal':if(confirm('Apagar do aparelho os dados do app antigo? Faça isso só depois de trazer para a nuvem.')){['financas-casa-v1','financas-app-v1'].forEach(function(k){try{localStorage.removeItem(k)}catch(x){}});closeSheet();toast('Dados antigos apagados deste aparelho')}break;
-    case 'milhas':tab='milhas';render();break;
-    case 'intl':tab='intl';render();document.getElementById('view').scrollTop=0;break;
+    case 'milhas':tab='milhas';fetchRates(false);render();break;
+    case 'intl':tab='intl';fetchRates(false);render();document.getElementById('view').scrollTop=0;break;
     case 'iown':IOWN=v||'';render();break;
     case 'newac':AF={name:'',owner:ME.id,cur:'USD',bal:''};acForm();break;
     case 'editac':var ea=DB.ac[id];AF={id:ea.id,name:ea.name,owner:ea.owner,cur:ea.cur};acForm();break;
@@ -765,7 +778,8 @@ document.addEventListener('click',function(e){
     case 'editam':var em2=DB.am[id];MVF={id:em2.id,type:em2.type,ac:em2.ac,amt:num(em2.amt),brl:em2.brl?num(em2.brl):'',desc:em2.desc||'',d:em2.d};amForm();break;
     case 'saveam':saveAm();break;
     case 'delam':var amid=MVF.id;MVF=null;closeSheet();undoable('am',amid,'Movimentação excluída');break;
-    case 'rates':ratesSheet();break;
+    case 'rates':ratesSheet();fetchRates(false).then(function(){if(document.getElementById('sheet').classList.contains('on'))ratesSheet()});break;
+    case 'rfresh':toast('Buscando cotação…');fetchRates(true).then(function(){ratesSheet();toast(LIVE_ERR?'Não consegui atualizar agora':'Cotação atualizada')});break;
     case 'newmi':MF={type:'ini',prog:'Livelo',dest:'Smiles',pts:'',bonus:'',par:'1',brl:'',exp:'',d:TODAY,note:''};miForm();break;
     case 'miest':var es=estPts(cur).filter(function(x){return x.src===v})[0];MF={type:'acu',prog:es.prog,dest:'',pts:String(es.pts),bonus:'',par:'1',brl:'',exp:addDays(TODAY,365*3),d:dueOf(v,cur),note:'Fatura '+SRC(v)[1]+' de '+MES[+cur.slice(5,7)-1],src:v,ym:cur};miForm();break;
     case 'mt':grabM();MF.type=v;miForm();break;
