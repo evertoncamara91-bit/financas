@@ -193,6 +193,8 @@ input,select,textarea,.desc,.search,.sel,.fin,.fld{font-size:16px!important}
 .goal{padding:4px 14px 2px;margin-bottom:10px}.gplan p{font-size:13px;color:var(--ink2);margin:0 0 7px;line-height:1.45}
 .plan-tot{display:flex;gap:8px;margin-top:10px}.plan-tot div{flex:1;background:#F6F7F9;border-radius:12px;padding:8px 10px}.plan-tot small{display:block;font-size:11px;color:var(--mute)}.plan-tot b{font-size:13.5px;font-variant-numeric:tabular-nums}
 .io3 div{padding:8px 9px}.io3 b{font-size:13px}
+.kres{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline;background:var(--card);border-radius:16px;padding:12px 14px;margin:2px 0 8px}.kres small{color:var(--mute);font-size:12px}.kres b{text-align:right;font-variant-numeric:tabular-nums}.kres .big2{font-size:22px;color:var(--ink)}
+.verd{font-size:13px;font-weight:600;border-radius:12px;padding:9px 11px;margin:6px 0 4px;line-height:1.4}.v-ok{background:#ECFDF5;color:#047857}.v-mid{background:var(--ambl);color:var(--amb)}.v-bad{background:var(--redl);color:#BE123C}
 </style>
 </head>
 <body>
@@ -459,7 +461,7 @@ function vMais(){
   var mi=miSummary(),code=HH?HH.invite_code:'';
   var ib=intlSummary(''),t=[['🌎','Contas internacionais',vals(DB.ac).length?'≈ '+money(ib.brl)+' · '+vals(DB.ac).length+' conta'+(vals(DB.ac).length>1?'s':''):'Dólar, euro e outras moedas','#ECFDF5','intl'],['✈️','Milhas',mi.total?int(mi.total)+' pontos':'Saldo e transferências','#E0F2FE','milhas'],['🧾','Contas fixas','Salários, contas, parcelas','#E6F6F3','planos'],['💳','Cartões','Fechamento, vencimento, pontos','#FEF3C7','cartoes'],['👥','Pessoas da casa',MEMBERS.length+' pessoa'+(MEMBERS.length!==1?'s':'')+' · convite','#FCE7F3','pessoas'],['📥','Importar dados','Backup do app antigo','#EEF2FF','importar'],['🚪','Sair','Desconectar este aparelho','#F1F5F9','logout']];
   return '<div class="hd"><div class="hi"><b>Mais</b></div></div><div class="tiles">'+t.map(function(x){return '<button class="tile" data-act="'+x[4]+'"><div class="ic" style="background:'+x[3]+'">'+x[0]+'</div><div><b>'+x[1]+'</b><small>'+esc(x[2])+'</small></div></button>'}).join('')+'</div>'+
-  '<div style="text-align:center;margin-top:16px"><button class="tchip" data-act="cons">🧪 consultor · teste</button></div><p class="hint" style="text-align:center;margin-top:10px">Versão 22/11 · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
+  '<div style="text-align:center;margin-top:16px"><button class="tchip" data-act="cons">🧪 consultor · teste</button></div><p class="hint" style="text-align:center;margin-top:10px">Versão 22/11b · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
 }
 function render(){
   if(!READY||!HH)return;
@@ -650,8 +652,8 @@ function vMilhas(){
   var s=miSummary(),y=cur.slice(0,4),h='<div class="hd"><div class="hi"><small><button class="link" style="padding:0" data-tab="mais">‹ Mais</button></small><b>Milhas</b></div><div class="month"><button data-act="prev">‹</button>'+mLabel(cur)+'<button data-act="next">›</button></div></div>';
   h+='<div class="hero" style="background:radial-gradient(120% 140% at 100% 0%,#38BDF8 0%,#0369A1 50%,#0C4A6E 100%);box-shadow:0 12px 24px rgba(3,105,161,.25)"><small>Total em todos os programas</small><div class="big">'+int(s.total)+' <span style="font-size:18px;font-weight:600">pontos</span></div><div class="io">'+(Object.keys(s.by).length?Object.keys(s.by).sort(function(a,b){return s.by[b]-s.by[a]}).slice(0,3).map(function(k){return '<div>'+esc(k)+'<b>'+int(s.by[k])+'</b></div>'}).join(''):'<div>Nenhum saldo lançado<b>Toque em “+ Movimentação”</b></div>')+'</div></div>';
   var al=miAlerts();
-  h+='<div class="seg mseg" style="margin:14px 0 4px">'+[['res','Resumo'],['pro','Promos',al.promos],['clu','Clubes',vals(DB.mc).filter(function(c){return c.active!==false}).length],['ven','Validade',al.soon]].map(function(x){return '<button data-act="mtab" data-v="'+x[0]+'" class="'+(MTAB===x[0]?'on':'')+'">'+x[1]+(x[2]?' <span class="cnt">'+x[2]+'</span>':'')+'</button>'}).join('')+'</div>';
-  if(MTAB==='pro')return h+vPromos();if(MTAB==='clu')return h+vClubs();if(MTAB==='ven')return h+vVenc();
+  h+='<div class="seg mseg" style="margin:14px 0 4px">'+[['res','Resumo'],['pro','Promos',al.promos],['clu','Clubes',vals(DB.mc).filter(function(c){return c.active!==false}).length],['ven','Validade',al.soon],['calc','🧮']].map(function(x){return '<button data-act="mtab" data-v="'+x[0]+'" class="'+(MTAB===x[0]?'on':'')+'">'+x[1]+(x[2]?' <span class="cnt">'+x[2]+'</span>':'')+'</button>'}).join('')+'</div>';
+  if(MTAB==='pro')return h+vPromos();if(MTAB==='clu')return h+vClubs();if(MTAB==='ven')return h+vVenc();if(MTAB==='calc')return h+vCalc();
   if(al.soonPts)h+='<button class="warn" style="display:block;width:100%;text-align:left" data-act="mtab" data-v="ven">⌛ '+int(al.soonPts)+' pontos vencem nos próximos 90 dias'+(al.next?' · o primeiro em '+dBr(al.next.d)+'/'+al.next.d.slice(2,4):'')+' ›</button>';
   if(al.promos)h+='<button class="warn" style="display:block;width:100%;text-align:left;background:#E0F2FE;color:#0369A1" data-act="mtab" data-v="pro">🎯 '+al.promos+' promoç'+(al.promos>1?'ões ativas':'ão ativa')+(al.notReg?' · '+al.notReg+' sem inscrição':'')+' ›</button>';
   var est=estPts(cur);
@@ -686,7 +688,7 @@ function miAlerts(){var l=expLots().filter(function(x){return !x.done&&x.d>=TODA
 function promoGot(p){return vals(DB.mi).some(function(m){return m.promo===p.id})||(p.auto&&p.pts&&p.cd&&p.cd<=TODAY)}
 function vPromos(){var l=vals(DB.mp).sort(function(a,b){return(a.end<TODAY)-(b.end<TODAY)||a.end.localeCompare(b.end)}),act=l.filter(function(p){return p.end>=TODAY||(p.pts&&!promoGot(p))}),old=l.filter(function(p){return !(p.end>=TODAY||(p.pts&&!promoGot(p)))});
   var row=function(p){var K=PKIND[p.kind]||PKIND.out,n=days(p.end),on=n>=0;
-    return '<div class="it"'+(on?'':' style="opacity:.55"')+'><button class="check'+(p.reg?' on':'')+'" data-act="preg" data-id="'+esc(p.id)+'" aria-label="Inscrito">'+(p.reg?'✓':'')+'</button><button class="mid" style="text-align:left" data-act="editpr" data-id="'+esc(p.id)+'"><b>'+K[1]+' '+(p.kind==='tra'?esc(p.from||'?')+' → '+esc(p.prog):esc(p.prog))+(p.bonus?' +'+p.bonus+'%':'')+'</b><small>'+esc(p.title||K[0])+' · até '+dBr(p.end)+(on?' · <span style="color:'+(n<=3?'var(--red)':'var(--amb)')+'">'+left(p.end)+'</span>':'')+(p.reg?' · ✓ inscrito':on?' · <span style="color:var(--red);font-weight:700">falta se inscrever</span>':'')+(p.pts?'<br>'+(promoGot(p)?'✓ '+int(p.pts)+' pts no saldo':'+'+int(p.pts)+' pts '+(p.cd?'previsto '+dBr(p.cd):'sem data')+(p.auto?' · automático':'')):'')+'</small></button>'+(p.pts&&!promoGot(p)&&!p.auto?'<button class="chip on" data-act="prcred" data-id="'+esc(p.id)+'">Lançar</button>':'')+(on&&p.kind==='tra'?'<button class="chip on" data-act="pruse" data-id="'+esc(p.id)+'">Usar</button>':'')+'</div>'};
+    return '<div class="it"'+(on?'':' style="opacity:.55"')+'><button class="check'+(p.reg?' on':'')+'" data-act="preg" data-id="'+esc(p.id)+'" aria-label="Inscrito">'+(p.reg?'✓':'')+'</button><button class="mid" style="text-align:left" data-act="editpr" data-id="'+esc(p.id)+'"><b>'+K[1]+' '+(p.kind==='tra'?esc(p.from||'?')+' → '+esc(p.prog):esc(p.prog))+(p.bonus?' +'+p.bonus+'%':'')+'</b><small>'+(promoMil(p)?'milheiro '+money(promoMil(p))+' · ':'')+esc(p.title||K[0])+' · até '+dBr(p.end)+(on?' · <span style="color:'+(n<=3?'var(--red)':'var(--amb)')+'">'+left(p.end)+'</span>':'')+(p.reg?' · ✓ inscrito':on?' · <span style="color:var(--red);font-weight:700">falta se inscrever</span>':'')+(p.pts?'<br>'+(promoGot(p)?'✓ '+int(p.pts)+' pts no saldo':'+'+int(p.pts)+' pts '+(p.cd?'previsto '+dBr(p.cd):'sem data')+(p.auto?' · automático':'')):'')+'</small></button>'+(p.pts&&!promoGot(p)&&!p.auto?'<button class="chip on" data-act="prcred" data-id="'+esc(p.id)+'">Lançar</button>':'')+(on&&p.kind==='tra'?'<button class="chip on" data-act="pruse" data-id="'+esc(p.id)+'">Usar</button>':'')+'</div>'};
   var h='<div class="sec"><b>Ativas</b><button data-act="newpr">+ Promoção</button></div><div class="card">'+(act.length?act.map(row).join(''):'<div class="empty">Nenhuma promoção ativa. Viu uma? Toque em “+ Promoção” para não perder o prazo.</div>')+'</div>';
   if(old.length)h+='<div class="sec"><b>Encerradas</b></div><div class="card">'+old.slice(0,10).map(row).join('')+'</div>';
   return h+'<p class="hint">Marque o círculo quando fizer a inscrição. “Usar” abre uma transferência já com o bônus da promoção.</p>'}
@@ -695,13 +697,15 @@ function prForm(){var f=PRF,h='<b style="font-size:19px;display:block;margin:2px
   h+='<div class="irow"><span>'+(f.kind==='tra'?'Para':'Programa')+'</span>'+selProg('r-prog',f.prog)+'</div><div class="irow"><span>Bônus (%)</span><input class="fin" id="r-bonus" inputmode="numeric" value="'+esc(f.bonus)+'" placeholder="ex.: 80" style="max-width:90px"></div>'+
   '<div class="irow"><span>Válida até</span><input class="fin" id="r-end" type="date" value="'+esc(f.end)+'"></div><div class="irow"><span>Nome / regra</span><input class="fin" id="r-title" value="'+esc(f.title)+'" placeholder="ex.: Black Friday, clube +20%"></div>'+
   '<div class="irow"><div>Já me inscrevi<small>muitas promoções só valem com inscrição antes</small></div><button class="tog'+(f.reg?' on':'')+'" data-act="prreg"></button></div></div>'+
+  (f.kind==='com'?'<div class="info"><div class="irow"><span>Preço do pacote</span><input class="fin" id="r-price" inputmode="decimal" value="'+esc(f.price)+'" placeholder="R$ 0,00"></div><div class="irow"><span>Pontos do pacote (sem bônus)</span><input class="fin" id="r-qty" inputmode="numeric" value="'+esc(f.qty)+'" placeholder="0" style="max-width:110px"></div><div class="irow"><div id="r-mil" style="font-size:13px;color:var(--ink2);width:100%"></div></div></div>':'')+
+  (f.kind==='tra'?'<div class="info"><div class="irow"><div>Milheiro do ponto de origem<small>opcional · quanto custou cada mil pontos</small></div><input class="fin" id="r-ocost" inputmode="decimal" value="'+esc(f.ocost)+'" placeholder="R$ 0,00" style="max-width:110px"></div><div class="irow"><div id="r-mil" style="font-size:13px;color:var(--ink2);width:100%"></div></div></div>':'')+
   '<div class="info"><div class="irow"><div>Pontos de bônus que vou ganhar<small>opcional · o que a promoção vai creditar</small></div><input class="fin" id="r-pts" inputmode="numeric" value="'+esc(f.pts)+'" placeholder="0" style="max-width:100px"></div>'+
   '<div class="irow"><span>Crédito previsto em</span><input class="fin" id="r-cd" type="date" value="'+esc(f.cd)+'"></div>'+
   '<div class="irow"><div>Somar no saldo sozinho na data<small>desligado: você lança à mão quando cair</small></div><button class="tog'+(f.auto?' on':'')+'" data-act="prauto"></button></div></div>'+(f.kind==='tra'?'<p class="hint">Em transferência bonificada, se você lançar a transferência pelo botão “Usar”, o bônus já entra junto. Só preencha os pontos acima se o bônus cair separado.</p>':'');
-  openSheet(h+'<button class="save" data-act="savepr">Salvar</button>'+(f.id?'<button class="ghost" data-act="delpr">Excluir</button>':''))}
-function grabR(){['from','prog','bonus','end','title','pts','cd'].forEach(function(k){var e=document.getElementById('r-'+k);if(e)PRF[k]=e.value})}
+  openSheet(h+'<button class="save" data-act="savepr">Salvar</button>'+(f.id?'<button class="ghost" data-act="delpr">Excluir</button>':''));liveMil('r')}
+function grabR(){['from','prog','bonus','end','title','pts','cd','price','qty','ocost'].forEach(function(k){var e=document.getElementById('r-'+k);if(e)PRF[k]=e.value})}
 function savePr(){grabR();var f=PRF;if(!f.end){toast('Escolha até quando vale');return}if(f.kind==='tra'&&f.from===f.prog){toast('Escolha programas diferentes');return}
-  var id=f.id||uid(),o=DB.mp[id]||{};put('mp',id,Object.assign({},o,{id:id,kind:f.kind,from:f.kind==='tra'?f.from:'',prog:f.prog,bonus:parseInt(f.bonus,10)||0,end:f.end,title:(f.title||'').trim(),reg:!!f.reg,pts:parseInt(String(f.pts||'').replace(/\D/g,''),10)||0,cd:f.cd||'',auto:!!f.auto,by:o.by||ME.id}));PRF=null;closeSheet();toast('Promoção salva')}
+  var id=f.id||uid(),o=DB.mp[id]||{};put('mp',id,Object.assign({},o,{id:id,kind:f.kind,from:f.kind==='tra'?f.from:'',prog:f.prog,bonus:parseInt(f.bonus,10)||0,end:f.end,title:(f.title||'').trim(),reg:!!f.reg,pts:parseInt(String(f.pts||'').replace(/\D/g,''),10)||0,cd:f.cd||'',auto:!!f.auto,price:parseBR(f.price),qty:parseInt(String(f.qty||'').replace(/\D/g,''),10)||0,ocost:parseBR(f.ocost),by:o.by||ME.id}));PRF=null;closeSheet();toast('Promoção salva')}
 function clubPaidMonth(c,ym){return MIS().some(function(m){return m.club===c.id&&m.ym===ym})}
 function vClubs(){var l=vals(DB.mc).sort(function(a,b){return(a.active===false)-(b.active===false)||a.prog.localeCompare(b.prog)}),on=l.filter(function(c){return c.active!==false});
   var cost=on.reduce(function(s,c){return s+c.price},0),pts=on.reduce(function(s,c){return s+c.pts},0);
@@ -714,12 +718,12 @@ function vClubs(){var l=vals(DB.mc).sort(function(a,b){return(a.active===false)-
   return h+'</div><p class="hint">Os pontos do clube entram sozinhos no saldo todo mês, no dia da cobrança, até você cancelar. A mensalidade vai uma vez só para as contas fixas e aparece na fatura do cartão escolhido.</p>'}
 function clForm(){var f=CLF,h='<b style="font-size:19px;display:block;margin:2px 4px 12px">'+(f.id?'Editar':'Novo')+' clube</b><div class="info">'+
   '<div class="irow"><span>Programa</span>'+selProg('l-prog',f.prog)+'</div><div class="irow"><span>Nome do plano</span><input class="fin" id="l-name" value="'+esc(f.name)+'" placeholder="ex.: Clube Smiles 2.000"></div>'+
-  '<div class="irow"><span>Pontos por mês</span><input class="fin" id="l-pts" inputmode="numeric" value="'+esc(f.pts)+'" placeholder="0" style="max-width:100px"></div><div class="irow"><span>Preço por mês</span><input class="fin" id="l-price" inputmode="decimal" value="'+esc(f.price)+'" placeholder="R$ 0,00" style="max-width:110px"></div>'+
+  '<div class="irow"><span>Pontos por mês</span><input class="fin" id="l-pts" inputmode="numeric" value="'+esc(f.pts)+'" placeholder="0" style="max-width:100px"></div><div class="irow"><span>Preço por mês</span><input class="fin" id="l-price" inputmode="decimal" value="'+esc(f.price)+'" placeholder="R$ 0,00" style="max-width:110px"></div><div class="irow"><div id="l-mil" style="font-size:13px;color:var(--ink2);width:100%"></div></div>'+
   '<div class="irow"><span>Assinei em</span><input class="fin" id="l-start" type="date" value="'+esc(f.start)+'"></div><div class="irow"><span>Dia da cobrança / crédito</span><input class="fin" id="l-day" inputmode="numeric" value="'+esc(f.day)+'" style="max-width:70px"></div><div class="irow"><span>Pago com</span><select class="sel" id="l-src"><option value="">Boleto / outro</option>'+CFG().srcs.map(function(x){return '<option'+(f.src===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>'+
   '<div class="irow"><span>Bônus extra para assinantes (%)</span><input class="fin" id="l-bonus" inputmode="numeric" value="'+esc(f.bonus)+'" placeholder="0" style="max-width:80px"></div>'+
   '<div class="irow"><div>Mensalidade nas contas fixas<small>aparece em Contas e na fatura do cartão</small></div><button class="tog'+(f.fix?' on':'')+'" data-act="clfix"></button></div>'+
   (f.id?'<div class="irow"><div>Clube ativo<small>desligue ao cancelar: param os pontos e a mensalidade</small></div><button class="tog'+(f.active?' on':'')+'" data-act="clact"></button></div>'+(f.active?'':'<div class="irow"><span>Cancelado em</span><input class="fin" id="l-end" type="date" value="'+esc(f.end||TODAY)+'"></div>'):'')+'</div>';
-  openSheet(h+'<button class="save" data-act="savecl">Salvar</button>'+(f.id?'<button class="ghost" data-act="delcl">Excluir</button>':''))}
+  openSheet(h+'<button class="save" data-act="savecl">Salvar</button>'+(f.id?'<button class="ghost" data-act="delcl">Excluir</button>':''));liveMil('l')}
 function grabL(){['prog','name','pts','price','day','src','bonus','start','end'].forEach(function(k){var e=document.getElementById('l-'+k);if(e)CLF[k]=e.value})}
 function saveCl(){grabL();var f=CLF,pts=parseInt(String(f.pts).replace(/\D/g,''),10)||0,price=parseBR(f.price);if(!pts){toast('Digite os pontos por mês');return}
   var id=f.id||uid(),o=DB.mc[id]||{},day=Math.min(31,Math.max(1,parseInt(f.day,10)||1)),name=(f.name||'').trim()||('Clube '+f.prog);
@@ -936,6 +940,8 @@ document.addEventListener('click',function(e){
     case 'impfile':document.getElementById('imp').click();break;
     case 'implocal':importData(oldLocal());break;
     case 'clrlocal':if(confirm('Apagar do aparelho os dados do app antigo? Faça isso só depois de trazer para a nuvem.')){['financas-casa-v1','financas-app-v1'].forEach(function(k){try{localStorage.removeItem(k)}catch(x){}});closeSheet();toast('Dados antigos apagados deste aparelho')}break;
+    case 'kmode':CALC={m:v,price:'',pts:'',bonus:'',ocost:'',par:'1',fee:'',tkt:'',tax:''};render();break;
+    case 'kreg':var kp=parseInt(String(CALC.pts).replace(/\D/g,''),10)||0,kb=(parseInt(CALC.bonus,10)||0)/100;if(!kp||!parseBR(CALC.price)){toast('Preencha preço e pontos');break}MF={type:'com',prog:'Livelo',dest:'',pts:String(Math.round(kp*(1+kb))),bonus:'',par:'1',brl:num(parseBR(CALC.price)),exp:'',d:TODAY,note:'Compra de pontos'+(kb?' +'+Math.round(kb*100)+'%':'')};miForm();break;
     case 'cons':tab='cons';render();document.getElementById('view').scrollTop=0;break;
     case 'ctab':CTAB=v;tab='cons';render();break;
     case 'runana':var vb=document.querySelector('[data-act=runana]');if(vb){vb.textContent='Analisando…';vb.disabled=true}setTimeout(function(){CREP=analyze();render()},500);break;
@@ -966,10 +972,10 @@ document.addEventListener('click',function(e){
     case 'miest':var es=estPts(cur).filter(function(x){return x.src===v})[0];MF={type:'acu',prog:es.prog,dest:'',pts:String(es.pts),bonus:'',par:'1',brl:'',exp:addDays(TODAY,365*3),d:dueOf(v,cur),note:'Fatura '+SRC(v)[1]+' de '+MES[+cur.slice(5,7)-1],src:v,ym:cur};miForm();break;
     case 'mt':grabM();MF.type=v;miForm();break;
     case 'mtab':MTAB=v;tab='milhas';render();break;
-    case 'newpr':PRF={kind:'tra',from:'Livelo',prog:'Smiles',bonus:'',end:addDays(TODAY,7),title:'',reg:false,pts:'',cd:'',auto:true};prForm();break;
+    case 'newpr':PRF={kind:'tra',from:'Livelo',prog:'Smiles',bonus:'',end:addDays(TODAY,7),title:'',reg:false,pts:'',cd:'',auto:true,price:'',qty:'',ocost:''};prForm();break;
     case 'prauto':grabR();PRF.auto=!PRF.auto;prForm();break;
     case 'prcred':var pc=DB.mp[id],mm3={id:uid(),type:'acu',prog:pc.prog,pts:pc.pts,d:pc.cd&&pc.cd<=TODAY?pc.cd:TODAY,note:'Bônus '+(pc.title||'promoção'),promo:pc.id,by:ME.id};put('mi',mm3.id,mm3);toast('✓ '+int(pc.pts)+' pontos de bônus lançados');break;
-    case 'editpr':var pr=DB.mp[id];PRF=Object.assign({},pr,{bonus:pr.bonus?String(pr.bonus):'',pts:pr.pts?String(pr.pts):'',cd:pr.cd||'',auto:!!pr.auto});prForm();break;
+    case 'editpr':var pr=DB.mp[id];PRF=Object.assign({},pr,{bonus:pr.bonus?String(pr.bonus):'',pts:pr.pts?String(pr.pts):'',cd:pr.cd||'',auto:!!pr.auto,price:pr.price?num(pr.price):'',qty:pr.qty?String(pr.qty):'',ocost:pr.ocost?num(pr.ocost):''});prForm();break;
     case 'prk':grabR();PRF.kind=v;prForm();break;
     case 'prreg':grabR();PRF.reg=!PRF.reg;prForm();break;
     case 'savepr':savePr();break;
@@ -994,6 +1000,9 @@ document.addEventListener('click',function(e){
   }
 });
 document.addEventListener('input',function(e){
+  if(/^k-/.test(e.target.id)&&e.target.id!=='k-alvo'){CALC[e.target.id.slice(2)]=e.target.value;var kr=document.getElementById('k-res');if(kr)kr.innerHTML=calcOut()}
+  if(/^r-(price|qty|bonus|ocost)$/.test(e.target.id))liveMil('r');
+  if(/^l-(price|pts)$/.test(e.target.id))liveMil('l');
   if(MVF&&/^v-(amt|brl)$/.test(e.target.id)){grabV();var vh=document.getElementById('v-hint');if(vh)vh.textContent=amHint()}
   if(e.target.id==='q'){q=e.target.value;var pos=e.target.selectionStart;render();var n=document.getElementById('q');n.focus();n.setSelectionRange(pos,pos)}
   if(e.target.id==='fdesc'&&F&&F.t==='D'&&!F.id){var g=guessCat(e.target.value);if(g&&g!==F.cat){F.cat=g;F.desc=e.target.value;var cs=document.querySelectorAll('.cat');[].forEach.call(cs,function(c){c.classList.toggle('on',c.getAttribute('data-v')===g)})}}
@@ -1007,6 +1016,7 @@ document.addEventListener('change',function(e){
   if(t.id==='g-prog'&&t.value==='__novo'){var ng=prompt('Nome do programa');grabG();if(ng&&ng.trim())GF.prog=ng.trim();goalForm()}
   if(/^(r-from|r-prog|l-prog|x-prog)$/.test(t.id)&&t.value==='__novo'){var nn2=prompt('Nome do programa'),k2=t.id.slice(2);if(t.id[0]==='r'){grabR();if(nn2&&nn2.trim())PRF[k2]=nn2.trim();prForm()}else if(t.id[0]==='l'){grabL();if(nn2&&nn2.trim())CLF.prog=nn2.trim();clForm()}else{grabX();if(nn2&&nn2.trim())XF.prog=nn2.trim();xForm()}}
   if((t.id==='m-prog'||t.id==='m-dest')&&t.value==='__novo'){var nn=prompt('Nome do programa');grabM();if(nn&&nn.trim())MF[t.id==='m-prog'?'prog':'dest']=nn.trim();miForm()}
+  if(t.id==='k-alvo'){var ka=parseBR(t.value);if(ka>0)setTimeout(function(){setCfg(function(c){c.mtarget=ka})},0)}
   if(t.id==='v-ac'&&MVF){grabV();amForm()}
   if(t.getAttribute&&t.getAttribute('data-rate')){var rc=t.getAttribute('data-rate'),rv=parseBR(t.value);setCfg(function(c){if(!c.rates)c.rates={};if(rv>0)c.rates[rc]=rv;else delete c.rates[rc];if(rc==='USD'&&rv>0)c.usd=rv});ratesSheet()}
   if(t.id==='c-usd'){var u=parseBR(t.value);if(u>0)setCfg(function(c){c.usd=u})}
@@ -1235,6 +1245,45 @@ function saveGoal(){grabG();var f=GF,id=f.id||uid(),o=(DB.goal||{})[id]||{},g={i
   if(f.kind==='mil'){g.prog=f.prog;g.pts=parseInt(String(f.pts).replace(/\D/g,''),10)||0;g.date=f.date||'';if(!g.pts){toast('Digite as milhas');return}}
   put('goal',id,g);GOPEN[id]=true;GF=null;closeSheet();CTAB='met';tab='cons';render();toast('Meta salva')}
 function newGoal(kind){kind=kind||'poup';var ess=essentialMonthly();GF={kind:kind,name:kind==='res'?'Reserva de emergência':'',target:kind==='res'?num(Math.round(ess*6)):'',saved:'',date:kind==='res'?addDays(TODAY,365):addDays(TODAY,180),cat:'lazer',limit:'',pct:'30',prog:'Smiles',pts:''};goalForm()}
+
+/* ================= Calculadora de milheiro ================= */
+var CALC={m:'com',price:'',pts:'',bonus:'',ocost:'',par:'1',fee:'',tkt:'',tax:'',prog:'Smiles'};
+var CMODES={com:['Compra','🛒'],tra:['Transferência','🔁'],clu:['Clube','🎟️'],res:['Resgate','✈️']};
+function mAlvo(){var c=DB.cfg.main||{};return c.mtarget||20}
+function milheiro(brl,miles){return miles>0?r2(brl/miles*1000):0}
+function verdict(v,useMode){var a=mAlvo();if(!v)return '';
+  if(useMode){var ok=v>=a;return '<div class="verd '+(ok?'v-ok':v>=a*.8?'v-mid':'v-bad')+'">'+(ok?'✅ Bom uso: cada mil milhas está valendo '+money(v)+', acima do seu alvo de '+money(a)+'.':v>=a*.8?'🤔 No limite: '+money(v)+' por mil milhas, perto do seu alvo ('+money(a)+').':'💸 Melhor pagar em dinheiro: as milhas estão valendo só '+money(v)+' o milheiro, abaixo do seu alvo de '+money(a)+'.')+'</div>'}
+  var c=v<=a?'v-ok':v<=a*1.15?'v-mid':'v-bad';return '<div class="verd '+c+'">'+(v<=a?'✅ Vale a pena: milheiro de '+money(v)+', abaixo do seu alvo de '+money(a)+'.':v<=a*1.15?'🤔 No limite: '+money(v)+', um pouco acima do seu alvo ('+money(a)+'). Só se for usar logo.':'💸 Caro: '+money(v)+' o milheiro, acima do seu alvo de '+money(a)+'. Espere uma promoção melhor.')+'</div>'}
+function paidAvg(){var brl=0,pts=0,lim=addDays(TODAY,-365);
+  vals(DB.mi).forEach(function(m){if(m.type==='com'&&m.brl&&m.d>=lim){brl+=m.brl;pts+=m.pts}});
+  virtMI(TODAY).forEach(function(m){if(m.virt==='mc'&&m.d>=lim){var c=DB.mc[m.ref];if(c&&c.price){brl+=c.price;pts+=m.pts}}});
+  return{v:milheiro(brl,pts),brl:r2(brl),pts:pts}}
+function calcOut(){var k=CALC,P=parseBR,price=P(k.price),pts=parseInt(String(k.pts).replace(/\D/g,''),10)||0,b=(parseInt(k.bonus,10)||0)/100,h='';
+  if(k.m==='com'){var tot=Math.round(pts*(1+b)),v=milheiro(price,tot);if(!price||!pts)return '<p class="hint">Preencha o preço e a quantidade.</p>';
+    h='<div class="kres"><small>Você recebe</small><b>'+int(tot)+' pontos</b><small>Milheiro</small><b class="big2">'+money(v)+'</b></div>'+verdict(v)}
+  if(k.m==='tra'){var oc=P(k.ocost),par=P(k.par)||1,mil=Math.round(pts*par*(1+b)),cost=r2(pts/1000*oc),v2=milheiro(cost,mil);if(!pts)return '<p class="hint">Digite quantos pontos vai transferir.</p>';
+    h='<div class="kres"><small>Chegam no destino</small><b>'+int(mil)+' milhas</b>'+(oc?'<small>Custo dos pontos</small><b>'+money(cost)+'</b><small>Milheiro final</small><b class="big2">'+money(v2)+'</b>':'')+'</div>'+(oc?verdict(v2):'<p class="hint">Sem o custo do milheiro de origem, mostro só as milhas. Pontos do cartão saem “de graça” se a compra já seria feita: nesse caso, o ganho é o bônus.</p>')}
+  if(k.m==='clu'){var fee=P(k.fee),cb=Math.round(pts*(1+b)),v3=milheiro(fee,cb);if(!fee||!pts)return '<p class="hint">Preencha a mensalidade e as milhas por mês.</p>';
+    h='<div class="kres"><small>Por ano</small><b>'+money(fee*12)+' · '+int(cb*12)+' milhas</b><small>Milheiro</small><b class="big2">'+money(v3)+'</b></div>'+verdict(v3)}
+  if(k.m==='res'){var tk=P(k.tkt),tx=P(k.tax),v4=milheiro(tk-tx,pts);if(!tk||!pts)return '<p class="hint">Preencha o preço em dinheiro e as milhas pedidas.</p>';
+    h='<div class="kres"><small>Você economiza</small><b>'+money(r2(tk-tx))+'</b><small>Valor de cada mil milhas</small><b class="big2">'+money(v4)+'</b></div>'+verdict(v4,true);var pa=paidAvg();if(pa.v)h+='<p class="hint">Seu milheiro médio pago no último ano: '+money(pa.v)+'.</p>'}
+  return h}
+function vCalc(){var k=CALC,pa=paidAvg(),inp=function(id,lab,ph,mode,w){return '<div class="irow"><span>'+lab+'</span><input class="fin" id="k-'+id+'" inputmode="'+(mode||'decimal')+'" value="'+esc(k[id])+'" placeholder="'+ph+'"'+(w?' style="max-width:'+w+'px"':'')+'></div>'};
+  var h='<div class="chips" style="margin-top:12px">'+Object.keys(CMODES).map(function(m){return '<button class="chip'+(k.m===m?' on':'')+'" data-act="kmode" data-v="'+m+'">'+CMODES[m][1]+' '+CMODES[m][0]+'</button>'}).join('')+'</div><div class="info">';
+  if(k.m==='com')h+=inp('price','Preço total pago','R$ 0,00')+inp('pts','Pontos comprados','0','numeric')+inp('bonus','Bônus da promoção (%)','0','numeric',80);
+  if(k.m==='tra')h+=inp('pts','Pontos que vou transferir','0','numeric')+inp('bonus','Bônus da transferência (%)','0','numeric',80)+inp('par','Paridade (1 ponto vira)','1','decimal',80)+inp('ocost','Milheiro do ponto de origem (opcional)','R$ 0,00');
+  if(k.m==='clu')h+=inp('fee','Mensalidade','R$ 0,00')+inp('pts','Milhas por mês','0','numeric')+inp('bonus','Bônus extra (%)','0','numeric',80);
+  if(k.m==='res')h+=inp('tkt','Preço da passagem em dinheiro','R$ 0,00')+inp('pts','Milhas pedidas','0','numeric')+inp('tax','Taxas pagas na emissão','R$ 0,00');
+  h+='</div><div id="k-res">'+calcOut()+'</div>';
+  if(k.m==='com')h+='<button class="ghost" style="color:var(--pri)" data-act="kreg">Registrar esta compra nas movimentações</button>';
+  h+='<div class="info" style="margin-top:14px"><div class="irow"><div>Meu milheiro-alvo<small>quanto vocês aceitam pagar por mil milhas</small></div><input class="fin" id="k-alvo" inputmode="decimal" value="'+num(mAlvo())+'" style="max-width:100px"></div>'+(pa.v?'<div class="irow"><span>Milheiro médio pago (12 meses)</span><b>'+money(pa.v)+'</b></div>':'')+'</div>';
+  return h+'<p class="hint">Milheiro = valor pago ÷ milhas recebidas × 1.000. Para comprar, quanto menor, melhor. Para resgatar, quanto maior o valor por mil milhas, melhor o uso. O alvo varia por programa e época: ajustem pelo que costumam encontrar.</p>'}
+function liveMil(pre){
+  if(pre==='r'&&PRF){var price=parseBR((document.getElementById('r-price')||{}).value),qty=parseInt(((document.getElementById('r-qty')||{}).value||'').replace(/\D/g,''),10)||0,b=(parseInt((document.getElementById('r-bonus')||{}).value,10)||0)/100,oc=parseBR((document.getElementById('r-ocost')||{}).value),e=document.getElementById('r-mil');if(!e)return;
+    if(PRF.kind==='com'){var tot=Math.round(qty*(1+b));e.innerHTML=price&&qty?'Você recebe '+int(tot)+' pontos'+verdict(milheiro(price,tot)):'Preencha preço e pontos para ver o milheiro.'}
+    else if(PRF.kind==='tra'){e.innerHTML=oc?'Com '+(b*100)+'% de bônus, o milheiro final fica em '+money(r2(oc/(1+b)))+verdict(r2(oc/(1+b))):'Informe o milheiro do ponto de origem para ver o custo final.'}}
+  if(pre==='l'&&CLF){var pr=parseBR((document.getElementById('l-price')||{}).value),pt=parseInt(((document.getElementById('l-pts')||{}).value||'').replace(/\D/g,''),10)||0,el=document.getElementById('l-mil');if(el)el.innerHTML=pr&&pt?'Milheiro do clube: <b>'+money(milheiro(pr,pt))+'</b>'+verdict(milheiro(pr,pt)):''}}
+function promoMil(p){if(p.kind==='com'&&p.price&&p.qty)return milheiro(p.price,Math.round(p.qty*(1+(p.bonus||0)/100)));if(p.kind==='tra'&&p.ocost)return r2(p.ocost/(1+(p.bonus||0)/100));return 0}
 </script>
 </body>
 </html>
