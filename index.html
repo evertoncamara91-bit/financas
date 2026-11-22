@@ -185,6 +185,14 @@ input,select,textarea,.desc,.search,.sel,.fin,.fld{font-size:16px!important}
 .cam{position:relative;flex:none;width:44px;border-radius:14px;background:#F1F3F5;display:grid;place-items:center;font-size:20px;overflow:hidden}
 .cam input{position:absolute;inset:0;opacity:0;font-size:0!important}
 .scan{display:flex;gap:8px;align-items:center;background:var(--pril);color:var(--pri);border-radius:12px;padding:8px 10px;margin-top:8px;font-size:12.5px}.scan div{flex:1;min-width:0}.scan small{display:block;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.scan button{color:var(--pri);font-weight:600;font-size:12px}
+.tchip{font-size:11.5px;color:var(--mute);background:transparent;border:1px dashed #CBD5E1;border-radius:99px;padding:5px 11px;font-weight:600}
+.tbadge{font-size:11px;font-weight:700;color:#7C3AED;background:#EDE9FE;border-radius:99px;padding:2px 8px;vertical-align:middle;letter-spacing:0}
+.adv{display:flex;gap:10px;background:var(--card);border-radius:18px;padding:12px 14px;margin-bottom:8px;border-left:4px solid #CBD5E1;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.adv .ai{font-size:20px;line-height:1.2}.adv b{font-size:14px}.adv p{font-size:13px;color:var(--ink2);margin-top:3px;line-height:1.45}
+.adv.a-bad{border-left-color:var(--red)}.adv.a-warn{border-left-color:#F59E0B}.adv.a-good{border-left-color:#10B981}.adv.a-info{border-left-color:#6366F1}.adv.a-mil{border-left-color:#0EA5E9}
+.goal{padding:4px 14px 2px;margin-bottom:10px}.gplan p{font-size:13px;color:var(--ink2);margin:0 0 7px;line-height:1.45}
+.plan-tot{display:flex;gap:8px;margin-top:10px}.plan-tot div{flex:1;background:#F6F7F9;border-radius:12px;padding:8px 10px}.plan-tot small{display:block;font-size:11px;color:var(--mute)}.plan-tot b{font-size:13.5px;font-variant-numeric:tabular-nums}
+.io3 div{padding:8px 9px}.io3 b{font-size:13px}
 </style>
 </head>
 <body>
@@ -218,7 +226,7 @@ var MES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto',
 var MTYPES={ini:['Saldo','🏁'],acu:['Acúmulo','⬆️'],tra:['Transferência','🔁'],res:['Resgate','✈️'],com:['Compra de pontos','🛒'],exp:['Expirou','⌛']};
 
 /* ---------- estado ---------- */
-var ME=null,HH=null,MEMBERS=[],DB={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{}},READY=false;
+var ME=null,HH=null,MEMBERS=[],DB={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{},goal:{}},READY=false;
 var today=new Date(),TODAY=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
 var cur=TODAY.slice(0,7),tab='home',flt='',q='',F=null,PF=null,MF=null,OPEN={},showAllCat=false,UNDO=null;
 
@@ -286,7 +294,7 @@ function summary(ym){
 /* ---------- banco ---------- */
 var CACHE_KEY='financas-nuvem-cache';
 function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({hh:HH,members:MEMBERS,db:DB}))}catch(e){}}
-function loadCache(){try{var c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(c&&c.hh&&HH&&c.hh.id===HH.id){DB=c.db;['tx','plan','fat','cfg','mi','ac','am','mp','mc','mx'].forEach(function(k){if(!DB[k])DB[k]={}});Object.keys(DB).forEach(function(k){Object.keys(DB[k]).forEach(function(i){var o=DB[k][i];if(o&&typeof o==='object'&&o.id==null)o.id=i})});MEMBERS=c.members||[];return true}}catch(e){}return false}
+function loadCache(){try{var c=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(c&&c.hh&&HH&&c.hh.id===HH.id){DB=c.db;['tx','plan','fat','cfg','mi','ac','am','mp','mc','mx','goal'].forEach(function(k){if(!DB[k])DB[k]={}});Object.keys(DB).forEach(function(k){Object.keys(DB[k]).forEach(function(i){var o=DB[k][i];if(o&&typeof o==='object'&&o.id==null)o.id=i})});MEMBERS=c.members||[];return true}}catch(e){}return false}
 function put(coll,id,data){
   DB[coll][id]=data;saveCache();render();
   return sb.from('items').upsert({household_id:HH.id,coll:coll,id:id,data:data}).then(function(r){if(r.error){toast('Não salvou: '+(navigator.onLine?r.error.message:'sem internet'));console.error(r.error)}});
@@ -303,7 +311,7 @@ function del(coll,id){
 function loadAll(){
   var all=[],from=0;
   function page(){return sb.from('items').select('coll,id,data').eq('household_id',HH.id).range(from,from+999).then(function(r){if(r.error)throw r.error;all=all.concat(r.data);if(r.data.length===1000){from+=1000;return page()}})}
-  return page().then(function(){var n={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{}};all.forEach(function(r){if(n[r.coll]){if(r.data&&typeof r.data==='object'&&r.data.id==null)r.data.id=r.id;n[r.coll][r.id]=r.data}});DB=n;READY=true;saveCache()});
+  return page().then(function(){var n={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{},goal:{}};all.forEach(function(r){if(n[r.coll]){if(r.data&&typeof r.data==='object'&&r.data.id==null)r.data.id=r.id;n[r.coll][r.id]=r.data}});DB=n;READY=true;saveCache()});
 }
 var CH=null;
 function subscribe(){
@@ -451,13 +459,13 @@ function vMais(){
   var mi=miSummary(),code=HH?HH.invite_code:'';
   var ib=intlSummary(''),t=[['🌎','Contas internacionais',vals(DB.ac).length?'≈ '+money(ib.brl)+' · '+vals(DB.ac).length+' conta'+(vals(DB.ac).length>1?'s':''):'Dólar, euro e outras moedas','#ECFDF5','intl'],['✈️','Milhas',mi.total?int(mi.total)+' pontos':'Saldo e transferências','#E0F2FE','milhas'],['🧾','Contas fixas','Salários, contas, parcelas','#E6F6F3','planos'],['💳','Cartões','Fechamento, vencimento, pontos','#FEF3C7','cartoes'],['👥','Pessoas da casa',MEMBERS.length+' pessoa'+(MEMBERS.length!==1?'s':'')+' · convite','#FCE7F3','pessoas'],['📥','Importar dados','Backup do app antigo','#EEF2FF','importar'],['🚪','Sair','Desconectar este aparelho','#F1F5F9','logout']];
   return '<div class="hd"><div class="hi"><b>Mais</b></div></div><div class="tiles">'+t.map(function(x){return '<button class="tile" data-act="'+x[4]+'"><div class="ic" style="background:'+x[3]+'">'+x[0]+'</div><div><b>'+x[1]+'</b><small>'+esc(x[2])+'</small></div></button>'}).join('')+'</div>'+
-  '<p class="hint" style="text-align:center;margin-top:18px">Versão 19/11g · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
+  '<div style="text-align:center;margin-top:16px"><button class="tchip" data-act="cons">🧪 consultor · teste</button></div><p class="hint" style="text-align:center;margin-top:10px">Versão 22/11 · Em breve: caixinhas, investimentos, limites, imposto de renda e leitura de fatura em PDF.</p>';
 }
 function render(){
   if(!READY||!HH)return;
   var v=document.getElementById('view');
-  v.innerHTML='<div class="fade">'+{home:vHome,ext:vExt,contas:vContas,mais:vMais,milhas:vMilhas,intl:vIntl}[tab]()+'</div>';
-  [].forEach.call(document.querySelectorAll('#nav [data-tab]'),function(b){b.className=b.getAttribute('data-tab')===(tab==='milhas'||tab==='intl'?'mais':tab)?'on':''});
+  v.innerHTML='<div class="fade">'+{home:vHome,ext:vExt,contas:vContas,mais:vMais,milhas:vMilhas,intl:vIntl,cons:vCons}[tab]()+'</div>';
+  [].forEach.call(document.querySelectorAll('#nav [data-tab]'),function(b){b.className=b.getAttribute('data-tab')===(tab==='milhas'||tab==='intl'||tab==='cons'?'mais':tab)?'on':''});
 }
 
 /* ---------- lançamento ---------- */
@@ -888,7 +896,7 @@ document.addEventListener('click',function(e){
     case 'mkhouse':case 'joinhouse':var hn=em('h-name').trim();if(!hn){houseScreen('Digite seu nome.');break}
       var call=a==='mkhouse'?sb.rpc('create_household',{p_name:'Nossa casa',p_member_name:hn}):sb.rpc('join_household',{p_code:em('h-code').trim(),p_member_name:hn});
       call.then(function(r){if(r.error){houseScreen(/invalid_code/.test(r.error.message)?'Código não encontrado. Confira e tente de novo.':/household_full/.test(r.error.message)?'Esta casa já está completa (2 pessoas).':/already_member/.test(r.error.message)?'Você já faz parte de uma casa.':esc(r.error.message));return}var h0=Array.isArray(r.data)?r.data[0]:r.data;openHouse(h0.id).then(function(){if(a==='mkhouse')peopleSheet()})});break;
-    case 'logout':sb.auth.signOut().then(function(){try{localStorage.removeItem(CACHE_KEY)}catch(x){}ME=null;HH=null;READY=false;DB={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{}};closeSheet();authScreen('in')});break;
+    case 'logout':sb.auth.signOut().then(function(){try{localStorage.removeItem(CACHE_KEY)}catch(x){}ME=null;HH=null;READY=false;DB={tx:{},plan:{},fat:{},cfg:{},mi:{},ac:{},am:{},mp:{},mc:{},mx:{},goal:{}};closeSheet();authScreen('in')});break;
     case 'prev':cur=addM(cur,-1);render();break;
     case 'next':cur=addM(cur,1);render();break;
     case 'flt':if(document.getElementById('sheet').classList.contains('on'))closeSheet();flt=flt===v&&tab==='ext'?'':v;tab='ext';render();document.getElementById('view').scrollTop=0;break;
@@ -928,6 +936,17 @@ document.addEventListener('click',function(e){
     case 'impfile':document.getElementById('imp').click();break;
     case 'implocal':importData(oldLocal());break;
     case 'clrlocal':if(confirm('Apagar do aparelho os dados do app antigo? Faça isso só depois de trazer para a nuvem.')){['financas-casa-v1','financas-app-v1'].forEach(function(k){try{localStorage.removeItem(k)}catch(x){}});closeSheet();toast('Dados antigos apagados deste aparelho')}break;
+    case 'cons':tab='cons';render();document.getElementById('view').scrollTop=0;break;
+    case 'ctab':CTAB=v;tab='cons';render();break;
+    case 'runana':var vb=document.querySelector('[data-act=runana]');if(vb){vb.textContent='Analisando…';vb.disabled=true}setTimeout(function(){CREP=analyze();render()},500);break;
+    case 'cplan':CPLAN=v;render();break;
+    case 'newgoal':newGoal(v);break;
+    case 'gk':grabG();GF.kind=v;if(v==='res'&&!GF.target){GF.target=num(Math.round(essentialMonthly()*6));GF.name=GF.name||'Reserva de emergência'}goalForm();break;
+    case 'savegoal':saveGoal();break;
+    case 'gedit':var gg=DB.goal[id];GF=Object.assign({},gg,{target:gg.target?num(gg.target):'',saved:gg.saved?num(gg.saved):'',limit:gg.limit?num(gg.limit):'',pct:String(gg.pct||30),pts:gg.pts?String(gg.pts):''});goalForm();break;
+    case 'delgoal':var gid=GF.id;GF=null;closeSheet();undoable('goal',gid,'Meta excluída');break;
+    case 'gopen':GOPEN[id]=!GOPEN[id];render();break;
+    case 'gsave':var g2=DB.goal[id],add=prompt('Quanto vocês guardaram agora? (R$)');var av2=parseBR(add||'');if(av2>0){put('goal',id,Object.assign({},g2,{saved:r2((g2.saved||0)+av2)}));toast('✓ +'+money(av2)+' na meta')}break;
     case 'milhas':tab='milhas';fetchRates(false);render();break;
     case 'intl':tab='intl';fetchRates(false);render();document.getElementById('view').scrollTop=0;break;
     case 'iown':IOWN=v||'';render();break;
@@ -985,6 +1004,7 @@ document.addEventListener('change',function(e){
   if(t.id==='fcam'&&t.files&&t.files[0]){grabDesc();scanNota(t.files[0]);return}
   if(t.id==='fdate'&&t.value){grabDesc();F.d=t.value;F.mo='';addForm()}
   if(t.id==='fmo'){grabDesc();F.mo=t.value;addForm()}
+  if(t.id==='g-prog'&&t.value==='__novo'){var ng=prompt('Nome do programa');grabG();if(ng&&ng.trim())GF.prog=ng.trim();goalForm()}
   if(/^(r-from|r-prog|l-prog|x-prog)$/.test(t.id)&&t.value==='__novo'){var nn2=prompt('Nome do programa'),k2=t.id.slice(2);if(t.id[0]==='r'){grabR();if(nn2&&nn2.trim())PRF[k2]=nn2.trim();prForm()}else if(t.id[0]==='l'){grabL();if(nn2&&nn2.trim())CLF.prog=nn2.trim();clForm()}else{grabX();if(nn2&&nn2.trim())XF.prog=nn2.trim();xForm()}}
   if((t.id==='m-prog'||t.id==='m-dest')&&t.value==='__novo'){var nn=prompt('Nome do programa');grabM();if(nn&&nn.trim())MF[t.id==='m-prog'?'prog':'dest']=nn.trim();miForm()}
   if(t.id==='v-ac'&&MVF){grabV();amForm()}
@@ -1008,6 +1028,213 @@ window.addEventListener('online',function(){if(HH)loadAll().then(render)});
 sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'){ME=null}});
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').then(function(r){r.update()}).catch(function(){});
 boot();
+
+/* ================= Consultor (área de teste) =================
+   Tudo calculado no próprio aparelho a partir dos lançamentos. Sem IA paga. */
+var CTAB='ana',CREP=null,GF=null,GOPEN={},CPLAN='mod';
+var VARCATS=['lazer','outros','transporte','mercado','assinaturas','saude','educacao','moradia','carro'];
+var ESSENT={moradia:1,mercado:1,saude:1,transporte:1,carro:1,educacao:1,vestuario:1};
+var GK={poup:['Juntar dinheiro','🎯'],res:['Reserva de emergência','🛟'],lim:['Teto de gasto','🚧'],div:['Reduzir dívidas','⛓️'],mil:['Milhas para viagem','✈️']};
+function NOW(){return TODAY.slice(0,7)}
+function GOALS(){return vals(DB.goal||{})}
+function histMonths(){var first=null;TXS().forEach(function(t){var m=ymOf(t);if(m<=NOW()&&(!first||m<first))first=m});var o=[];if(!first)return o;for(var m=first;m<NOW();m=addM(m,1))o.push(m);return o.slice(-3)}
+function catSpend(ym,onlyVar){var c={};txM(ym).forEach(function(t){if(t.t!=='D'||t.v<=0)return;if(onlyVar&&(t.pid||t.inst))return;c[t.cat]=r2((c[t.cat]||0)+t.v)});return c}
+function avgObj(list){var o={},n=list.length||1;list.forEach(function(x){Object.keys(x).forEach(function(k){o[k]=(o[k]||0)+x[k]})});Object.keys(o).forEach(function(k){o[k]=r2(o[k]/n)});return o}
+function monthFlow(ym){var a=txM(ym);return{R:sum(a,'R'),D:sum(a,'D')}}
+function essentialMonthly(){var s=0;PLANS().forEach(function(p){if(p.k!=='rin'&&active(p,NOW()))s+=p.v});var h=histMonths(),v=avgObj(h.map(function(m){return catSpend(m,true)}));Object.keys(v).forEach(function(k){if(ESSENT[k])s+=v[k]});return r2(s)}
+function capacity(){var h=histMonths(),fl=h.map(monthFlow),hs=fl.length?r2(fl.reduce(function(s,x){return s+x.R-x.D},0)/fl.length):null,cur=summary(NOW()).free;
+  var base=hs==null?cur:Math.min(hs,cur);return{hist:hs,cur:cur,base:r2(Math.max(0,base))}}
+function freedBy(ym){var s=0;PLANS().forEach(function(p){if((p.k==='parc'||p.k==='div')&&active(p,NOW())&&!active(p,ym))s+=p.v});return r2(s)}
+function cutsFor(gap){var h=histMonths(),src=h.length?avgObj(h.map(function(m){return catSpend(m,true)})):catSpend(NOW(),true),order=['lazer','outros','assinaturas','transporte','mercado','educacao'],o=[],left=gap;
+  order.forEach(function(k){if(left<=0||!src[k])return;var pct=k==='mercado'?.1:k==='lazer'||k==='outros'?.3:.2,c=Math.min(left,Math.round(src[k]*pct));if(c>=20){o.push([k,c,src[k]]);left-=c}});return{list:o,left:Math.max(0,r2(left))}}
+function groupKey(d){var n=norm(d).replace(/^(ifd\*|mp \*|pg \*|pag\*|ec \*)/,'').replace(/[^a-z0-9 ]/g,' ').trim().split(/\s+/)[0]||'';return n.length>=3?n:''}
+function miAccrual(){var h=histMonths().concat([NOW()]),pts=0,n=0;h.forEach(function(m){var e=estPts(m);if(e.length){pts+=e.reduce(function(s,x){return s+x.pts},0);n++}});var card=n?Math.round(pts/n):0,clubs={};
+  vals(DB.mc).forEach(function(c){if(c.active!==false)clubs[c.prog]=(clubs[c.prog]||0)+c.pts});return{card:card,clubs:clubs}}
+function bestCard(){var b=null;Object.keys(CFG().cards).forEach(function(k){var c=card(k);if(c.pts&&(!b||c.pts>card(b).pts))b=k});return b}
+
+function analyze(){
+  var R={at:new Date(),cards:[],score:100,nums:{}},add=function(lvl,ic,t,x,act){R.cards.push({lvl:lvl,ic:ic,t:t,x:x,act:act})};
+  var M=NOW(),S=summary(M),h=histMonths(),day=+TODAY.slice(8),ld=lastDay(M),frac=Math.max(.15,day/ld);
+  var inc=S.inc||0,hf=h.map(monthFlow);R.nums={inc:inc,out:S.out,free:S.free,months:h.length};
+  if(!TXS().length){add('info','📭','Sem lançamentos ainda','Lance os gastos e recebimentos por alguns dias e rode a análise de novo.');R.score=null;return R}
+  if(h.length<2)add('info','🧪','Pouco histórico','Há só '+(h.length+1)+(h.length?' meses':' mês')+' com lançamentos. As comparações ficam mais confiáveis a partir de 3 meses.');
+  // 1. fluxo do mês
+  var rate=inc?S.free/inc:0;R.nums.rate=rate;
+  if(S.free<0){R.score-=30;add('bad','🚨','Vai faltar '+money(-S.free)+' em '+MES[+M.slice(5,7)-1],'O que ainda vai sair passa do que entra. Adie compras que não são essenciais e evite novas parcelas até a próxima entrada.')}
+  else if(rate<.1){R.score-=15;add('warn','⚠️','Sobra pequena: '+Math.round(rate*100)+'% da renda','Sobram '+money(S.free)+' de '+money(inc)+'. O ideal é guardar pelo menos 10% a 20% todo mês.')}
+  else add('good','✅','Sobra de '+Math.round(rate*100)+'% da renda','Devem sobrar '+money(S.free)+' em '+MES[+M.slice(5,7)-1]+'. Separe isso logo que o salário cair, antes de gastar.');
+  // quinzenas
+  var it=items(M),inc2=PLANS().filter(function(p){return p.k==='rin'&&active(p,M)}),av=txM(M).filter(function(t){return t.t==='R'&&!t.pid});
+  ['A','B'].forEach(function(b){var out=it.filter(function(x){return x.blk===b&&!x.paid}).reduce(function(s,x){return s+x.tot},0),inn=inc2.filter(function(p){return incBlock(p.day)===b&&!paid(p,M)}).reduce(function(s,p){return s+p.v},0)+av.filter(function(t){return incBlock(+t.d.slice(8))===b&&t.d>TODAY}).reduce(function(s,t){return s+t.v},0);
+    if(out-inn>50&&inn>0)add('warn','📅','Aperto '+(b==='A'?'no início':'no meio')+' do mês','As contas que ainda vencem nesse período ('+money(out)+') passam do que entra nele ('+money(inn)+'). Guarde '+money(r2(out-inn))+' da quinzena anterior para cobrir.')});
+  // atrasadas
+  var late=it.filter(function(x){return !x.paid&&x.due<TODAY});if(late.length){R.score-=10;add('bad','⏰',late.length+' conta'+(late.length>1?'s':'')+' em atraso','Pague ou marque como paga: '+late.map(function(x){return x.kind==='fat'?'Fatura '+SRC(x.src)[1]:x.p.name}).join(', ')+'. Atraso gera juros e multa.')}
+  // 2. comprometimento
+  if(inc){var dv=S.dividas/inc,fx=S.fixos/inc;R.nums.dv=dv;R.nums.fx=fx;
+    if(dv>.4){R.score-=25;add('bad','⛓️','Dívidas e parcelas em '+Math.round(dv*100)+'% da renda','Bem acima do limite saudável de 30%. Não assuma novas parcelas e use qualquer dinheiro extra para quitar as menores primeiro.')}
+    else if(dv>.3){R.score-=15;add('warn','⛓️','Dívidas e parcelas em '+Math.round(dv*100)+'% da renda','Acima de 30%. Evite parcelar compras novas até esse número cair.')}
+    if(fx>.5){R.score-=10;add('warn','🏠','Contas fixas em '+Math.round(fx*100)+'% da renda','Custos fixos altos deixam pouca folga. Vale revisar assinaturas e contratos (seguro, internet, celular).')}}
+  var fut=future(M),soon=fut.ends.filter(function(e){return diff(e.last,M)<=4&&diff(e.last,M)>=0});
+  if(soon.length){var lib=r2(soon.reduce(function(s,e){return s+e.v},0));add('good','🔓','Parcelas terminando: libera '+money(lib)+'/mês','Até '+mShort(soon[soon.length-1].last)+' terminam '+soon.slice(0,4).map(function(e){return e.name}).join(', ')+'. Quando acabarem, mantenha esse valor “pagando” para uma meta, em vez de gastar.')}
+  // 3. categorias
+  var cm=catSpend(M,true),cmAll=catSpend(M,false);
+  if(h.length){var av3=avgObj(h.map(function(m){return catSpend(m,true)}));
+    Object.keys(cm).forEach(function(k){var proj=day>=5?r2(cm[k]/frac):cm[k],base=av3[k]||0;if(base>0&&proj>base*1.25&&proj-base>120)add('warn','📈',CAT(k)[1]+': ritmo '+Math.round((proj/base-1)*100)+'% acima da média','Já foram '+money(cm[k])+' em '+MES[+M.slice(5,7)-1]+'. No ritmo atual, o mês fecha perto de '+money(proj)+', contra a média de '+money(base)+'.')});
+    var down=Object.keys(av3).filter(function(k){return k!=='vestuario'&&k!=='igreja'&&av3[k]>150&&day>=20&&(cm[k]||0)<av3[k]*.7});if(down.length)add('good','📉','Gastando menos em '+down.map(function(k){return CAT(k)[1]}).join(', '),'Abaixo da média dos últimos meses. Continuem assim.')}
+  if(inc){var laz=(cmAll.lazer||0)/frac;if(laz/inc>.12){R.score-=5;add('warn','🍔','Lazer e comer fora pesando','No ritmo do mês, lazer vai a '+money(laz)+' ('+Math.round(laz/inc*100)+'% da renda). Uma referência confortável é até 10%. Combinar um valor fixo por semana ajuda a controlar.')}}
+  // 4. gastos pequenos repetidos
+  var lim=addDays(TODAY,-60),grp={};TXS().forEach(function(t){if(t.t!=='D'||t.pid||t.inst||t.d<lim||t.v<=0||t.v>120)return;var k=groupKey(t.desc);if(!k)return;if(!grp[k])grp[k]={n:0,v:0,name:t.desc.replace(/\s*-\s*NuPay/i,'')};grp[k].n++;grp[k].v+=t.v});
+  Object.keys(grp).map(function(k){return grp[k]}).filter(function(g){return g.n>=4&&g.v>=100}).sort(function(a,b){return b.v-a.v}).slice(0,3).forEach(function(g){var m=r2(g.v/2);add('warn','🔁',g.n+'× '+g.name+' em 60 dias','Somam '+money(r2(g.v))+' (≈ '+money(m)+'/mês, '+money(m*12)+' por ano). Gastos pequenos e frequentes são os mais fáceis de reduzir sem perceber diferença.')});
+  // 5. assinaturas
+  var subs=PLANS().filter(function(p){return p.k==='rec'&&active(p,M)&&(p.cat==='assinaturas'||/wellhub|gympass|netflix|spotify|apple|google|prime|disney|hbo|max|claude|chatgpt|nucel|vivo|claro|tim/.test(norm(p.name)))});
+  if(subs.length){var st=r2(subs.reduce(function(s,p){return s+p.v},0)),dup={};subs.forEach(function(p){var k=groupKey(p.name);if(k)(dup[k]=dup[k]||[]).push(p.name)});var d2=Object.keys(dup).filter(function(k){return dup[k].length>1});
+    add(st/(inc||1)>.06?'warn':'info','📱','Assinaturas: '+money(st)+'/mês ('+money(st*12)+'/ano)',subs.length+' serviços recorrentes.'+(d2.length?' Repetidos: '+d2.map(function(k){return dup[k].join(' e ')}).join('; ')+'. Veja se um plano família ou compartilhado sai mais barato.':'')+' Cancele o que não usaram no último mês.')}
+  var anu=PLANS().filter(function(p){return active(p,M)&&/anuidade/.test(norm(p.name))});if(anu.length)add('info','💳','Anuidade do cartão: '+money(anu[0].v)+'/mês','Ligue para o banco e peça isenção ou desconto da anuidade. Muitos bancos concedem conforme o gasto mensal.');
+  // 6. organização dos lançamentos
+  var mis=TXS().filter(function(t){return t.t==='D'&&t.d>=lim&&((/mercad|feira|padar|panific/.test(norm(t.desc))&&t.cat!=='mercado')||(/combust|posto/.test(norm(t.desc))&&t.cat!=='carro'))});
+  if(mis.length)add('info','🗂️','Categorias para conferir','Alguns lançamentos parecem estar na categoria errada: '+mis.slice(0,3).map(function(t){return '“'+t.desc+'” em '+CAT(t.cat)[1]}).join(', ')+'. Categorias certas deixam a análise mais precisa.');
+  // 7. reserva e investimento
+  var ess=essentialMonthly(),hasRes=GOALS().some(function(g){return g.kind==='res'});
+  if(!hasRes){R.score-=5;add('info','🛟','Comece uma reserva de emergência','O recomendado é ter de 3 a 6 meses de custos essenciais guardados. Para vocês, isso dá de '+money(ess*3)+' a '+money(ess*6)+'. Deixe em aplicação de baixo risco e resgate a qualquer momento, como Tesouro Selic ou CDB com liquidez diária de banco grande.',['newgoal','res'])}
+  else add('info','📊','Depois da reserva','Com a reserva completa, o dinheiro de metas com prazo pode ir para aplicações de prazo parecido com a meta (Tesouro, CDB ou LCI/LCA). Compare sempre a rentabilidade líquida e o prazo de resgate.');
+  // 8. milhas
+  var ms=miSummary(),bc=bestCard(),acc=miAccrual();
+  if(bc){var other=0;Object.keys(CFG().cards).forEach(function(k){if(!card(k).pts){var f=fat(k,M);other+=f.lan}});
+    if(other>200){var lost=Math.round(other/rateOf('USD')*card(bc).pts);add('mil','💳','Pontos que ficaram na mesa',money(r2(other))+' foram gastos em cartões que não pontuam. No '+SRC(bc)[1]+', isso renderia cerca de '+int(lost)+' pontos '+(card(bc).prog||'')+' por mês ('+int(lost*12)+' por ano). Se não houver juros ou anuidade extra, concentre as compras nele.')}}
+  if(acc.card)add('mil','📈','Ritmo de acúmulo','O cartão rende cerca de '+int(acc.card)+' pontos por mês'+(Object.keys(acc.clubs).length?', mais '+Object.keys(acc.clubs).map(function(k){return int(acc.clubs[k])+' do clube '+k}).join(', '):'')+'. Saldo atual: '+int(ms.total)+' pontos.');
+  var exp=expLots().filter(function(x){return !x.done&&x.d>=TODAY&&days(x.d)<=90});if(exp.length){R.score-=5;add('bad','⌛',int(exp.reduce(function(s,x){return s+x.pts},0))+' pontos vencendo em 90 dias','Use ou transfira antes de vencer: '+exp.slice(0,3).map(function(x){return int(x.pts)+' '+x.prog+' em '+dBr(x.d)}).join(', ')+'.')}
+  var pr=vals(DB.mp).filter(function(p){return p.end>=TODAY&&!p.reg});if(pr.length)add('mil','🎯','Promoção sem inscrição','Inscreva-se antes de transferir ou comprar: '+pr.map(function(p){return(p.from?p.from+' → ':'')+p.prog+(p.bonus?' +'+p.bonus+'%':'')+' até '+dBr(p.end)}).join('; ')+'.');
+  var lv=0;Object.keys(ms.by).forEach(function(k){if(/livelo|esfera/i.test(k))lv+=ms.by[k]});
+  add('mil','🧭','Estratégia de milhas para vocês',[
+    lv?'Deixem os pontos do cartão acumulando na Livelo ('+int(lv)+' hoje) e só transfiram para companhias aéreas em promoções de transferência bonificada. Bônus de 80% a 100% costumam aparecer algumas vezes por ano.':'Acumulem os pontos do cartão no programa do banco e só transfiram em promoções bonificadas.',
+    'Antes de comprar online, entrem pelo shopping de pontos (Livelo ou Smiles): várias lojas dão pontos extras por real gasto, além do cartão.',
+    'Clube só compensa se o milheiro dele (preço ÷ milhas × 1.000) ficar abaixo do que vocês pagariam comprando milhas em promoção, e se forem usar as milhas.',
+    'Juntem as milhas no programa de quem vai emitir a passagem para não ficarem espalhadas em contas pequenas.',
+    'Na hora de emitir, comparem: valor da passagem em dinheiro ÷ milhas pedidas × 1.000. Se der menos que o milheiro que vocês pagaram, é melhor pagar em dinheiro.'].join('<br>• '));
+  // 9. metas
+  GOALS().forEach(function(g){var p=goalPlan(g);if(p.lvl==='bad'||p.lvl==='warn')add(p.lvl,GK[g.kind][1],'Meta “'+g.name+'”: '+p.head,p.short)});
+  if(!GOALS().length)add('info','🎯','Cadastre uma meta','Com uma meta (viagem, reserva, quitar dívida, milhas), o consultor monta um plano de quanto separar por mês e onde cortar.',['ctab','met']);
+  R.plans=actionPlans(grp,subs,M,frac,h);
+  R.score=Math.max(0,Math.min(100,R.score));return R;
+}
+function actionPlans(grp,subs,M,frac,h){
+  var base=h.length?avgObj(h.map(function(m){return catSpend(m,true)})):(function(){var c=catSpend(M,true),o={};Object.keys(c).forEach(function(k){o[k]=r2(c[k]/frac)});return o})();
+  var rec=Object.keys(grp).map(function(k){return grp[k]}).filter(function(g){return g.n>=4}).sort(function(a,b){return b.v-a.v}),recM=r2(rec.reduce(function(s,g){return s+g.v/2},0));
+  var subT=r2(subs.reduce(function(s,p){return s+p.v},0)),dupV=0,seen={};subs.forEach(function(p){var k=groupKey(p.name);if(k){if(seen[k])dupV+=Math.min(seen[k],p.v);else seen[k]=p.v}});
+  var clubs=vals(DB.mc).filter(function(c){return c.active!==false}),clubV=r2(clubs.reduce(function(s,c){return s+c.price},0));
+  var anu=PLANS().filter(function(p){return active(p,M)&&/anuidade/.test(norm(p.name))}).reduce(function(s,p){return s+p.v},0);
+  var fr=0;for(var k=1;k<=6;k++)fr=Math.max(fr,freedBy(addM(M,k)));
+  var cat=function(c,p,txt){var v=Math.round((base[c]||0)*p);return v>=10?[txt.replace('%',Math.round(p*100)+'%')+' (média '+money(base[c]||0)+')',v]:null};
+  var recTxt=rec.length?rec.slice(0,2).map(function(g){return g.name}).join(' e '):'apps e delivery';
+  var mk=function(key,name,desc,arr){var it=arr.filter(function(x){return x&&(x[1]>0||/parcelas|Não assumir/.test(x[0]))});return{key:key,name:name,desc:desc,items:it,tot:r2(it.reduce(function(s,x){return s+x[1]},0))}};
+  var P=[
+    mk('leve','Leve','Pequenos ajustes, quase sem mudar a rotina.',[
+      cat('lazer',.1,'Reduzir % em lazer e comer fora'),cat('outros',.1,'Reduzir % em compras avulsas (Outros)'),
+      recM?['Cortar 1 em cada 4 gastos repetidos ('+recTxt+')',Math.round(recM*.25)]:null,
+      anu?['Pedir isenção ou desconto da anuidade do cartão',Math.round(anu*.5)]:null]),
+    mk('mod','Moderado','Mudanças de hábito com combinados semanais.',[
+      cat('lazer',.25,'Reduzir % em lazer: um valor fixo por semana'),cat('outros',.25,'Reduzir % em Outros: lista de desejos e espera de 7 dias'),
+      recM?['Cortar metade dos gastos repetidos ('+recTxt+')',Math.round(recM*.5)]:null,
+      dupV?['Unificar assinaturas repetidas em plano família',Math.round(dupV)]:null,
+      cat('assinaturas',.15,'Cancelar o que não usaram no mês (~%)'),cat('mercado',.05,'Mercado com lista e marca própria (−%)'),
+      anu?['Isenção da anuidade do cartão',Math.round(anu)]:null,['Não assumir parcelas novas por 3 meses',0]]),
+    mk('pes','Pesado','Modo economia por alguns meses para virar o jogo.',[
+      cat('lazer',.5,'Cortar % de lazer: comer fora só em ocasiões'),cat('outros',.5,'Congelar compras não essenciais (−%)'),
+      recM?['Cortar 3 em cada 4 gastos repetidos ('+recTxt+')',Math.round(recM*.75)]:null,
+      subT?['Pausar assinaturas não essenciais (~35%)',Math.round(subT*.35)]:null,
+      cat('mercado',.1,'Mercado só com lista, atacado e marca própria (−%)'),cat('transporte',.15,'Trocar corridas por transporte público quando der (−%)'),
+      clubV?['Pausar clubes de milhas até a meta financeira',Math.round(clubV)]:null,
+      anu?['Trocar por cartão sem anuidade se não houver isenção',Math.round(anu)]:null,
+      ['Renegociar seguros, internet e celular na renovação',Math.round((base.moradia||0)*.03+(base.carro||0)*.05)],
+      fr?['Quando as parcelas terminarem, guardar 100% do valor liberado (+'+money(Math.round(fr))+'/mês depois)',0]:null])];
+  var S=summary(M),g=GOALS().filter(function(x){return(x.kind==='poup'||x.kind==='res')&&x.target>(x.saved||0)})[0];
+  P.forEach(function(p){p.free=r2(S.free+p.tot);p.year=r2(p.tot*12);if(g){var rem=g.target-(g.saved||0),cap=capacity().base+p.tot;p.goal={name:g.name,m:cap>0?Math.ceil(rem/cap):null}}});
+  return P}
+function goalPlan(g){
+  var M=NOW(),o={lvl:'info',head:'',short:'',lines:[],pct:0};
+  if(g.kind==='poup'||g.kind==='res'){
+    var target=g.target||0,saved=g.saved||0,rem=Math.max(0,target-saved),mo=Math.max(1,diff((g.date||addM(M,12)+'-01').slice(0,7),M)),need=r2(rem/mo),cap=capacity();o.pct=target?saved/target:0;
+    if(!rem){o.lvl='good';o.head='concluída 🎉';o.short='Meta atingida.';o.lines.push('Parabéns! Defina a próxima meta para manter o hábito de guardar.');return o}
+    o.lines.push('Faltam <b>'+money(rem)+'</b> em '+mo+' mes'+(mo>1?'es':'')+': guardar <b>'+money(need)+' por mês</b>.');
+    o.lines.push('Folga média por mês: '+money(cap.base)+(cap.hist!=null?' (histórico '+money(cap.hist)+', mês atual '+money(cap.cur)+')':'')+'.');
+    if(cap.base>=need){o.lvl='good';o.head=money(need)+'/mês, cabe no orçamento';o.short='Separe '+money(need)+' assim que o salário cair.';o.lines.push('✅ Cabe no orçamento. Programe uma transferência automática de '+money(need)+' no dia do salário para uma conta separada.')}
+    else{var gap=r2(need-cap.base),c=cutsFor(gap);o.lvl='warn';o.head='faltam '+money(gap)+'/mês';o.short='Para chegar no prazo, é preciso cortar '+money(gap)+' por mês ou alongar o prazo.';
+      if(c.list.length)o.lines.push('✂️ Sugestão de cortes por mês: '+c.list.map(function(x){return CAT(x[0])[1]+' −'+money(x[1])+' (média '+money(x[2])+')'}).join(', ')+'.');
+      var fr=0,when=null;for(var k=1;k<=mo;k++){var f=freedBy(addM(M,k));if(f>fr){fr=f;when=addM(M,k)}}if(fr)o.lines.push('🔓 A partir de '+mShort(when)+' parcelas terminadas liberam '+money(fr)+'/mês: direcione esse valor para a meta.');
+      var mens=cap.base+c.list.reduce(function(s,x){return s+x[1]},0)+fr*.5;if(mens>0){var nm=Math.ceil(rem/mens);o.lines.push('📆 Com os cortes, a meta fica pronta em cerca de '+nm+' mes'+(nm>1?'es':'')+' ('+mShort(addM(M,nm))+').')}}
+    if(g.kind==='res')o.lines.push('🛟 Guarde a reserva em aplicação de liquidez diária e baixo risco. Ela é para emergências, não para compras planejadas.');
+    return o}
+  if(g.kind==='lim'){var sp=(catSpend(M,false)[g.cat]||0),l=g.limit||0,left=r2(l-sp),dl=lastDay(M)-(+TODAY.slice(8))+1;o.pct=l?sp/l:0;
+    o.lines.push('Gasto em '+CAT(g.cat)[1]+' neste mês: <b>'+money(sp)+'</b> de '+money(l)+'.');
+    if(left<0){o.lvl='bad';o.head='estourou '+money(-left);o.short='O teto de '+CAT(g.cat)[1]+' passou em '+money(-left)+'. Segure até o fim do mês.';o.lines.push('🚫 Passou do teto. Evitem novos gastos nessa categoria até o mês virar.')}
+    else{var pd=r2(left/dl);o.lvl=o.pct>.8?'warn':'good';o.head=o.pct>.8?'quase no teto':'dentro do teto';o.short='Restam '+money(left)+' ('+money(pd)+' por dia).';o.lines.push('Restam <b>'+money(left)+'</b> para '+dl+' dias: até <b>'+money(pd)+' por dia</b>.')}
+    var h=histMonths();if(h.length){var a=avgObj(h.map(function(m){return catSpend(m,false)}))[g.cat]||0;o.lines.push('Média dos últimos meses: '+money(a)+'.')}return o}
+  if(g.kind==='div'){var S=summary(M),inc=S.inc||1,pct=S.dividas/inc,tg=(g.pct||30)/100;o.pct=Math.min(1,tg/Math.max(pct,.001));
+    o.lines.push('Hoje dívidas e parcelas são <b>'+Math.round(pct*100)+'%</b> da renda (meta: até '+Math.round(tg*100)+'%).');
+    if(pct<=tg){o.lvl='good';o.head='meta atingida';o.short='Comprometimento dentro da meta.';o.lines.push('✅ Dentro da meta. Antes de parcelar algo novo, confira se continua abaixo de '+Math.round(tg*100)+'%.');return o}
+    var when=null;for(var k=1;k<=60;k++){var ym=addM(M,k),d=0;PLANS().forEach(function(p){if((p.k==='parc'||p.k==='div')&&active(p,ym))d+=p.v});TXS().forEach(function(t){if(t.inst&&ymOf(t)===ym)d+=t.v});if(d/inc<=tg){when=ym;break}}
+    o.lvl='warn';o.head=when?'só em '+mShort(when):'longe da meta';o.short='Sem mudanças, o comprometimento só cai abaixo de '+Math.round(tg*100)+'% '+(when?'em '+mShort(when):'depois de 5 anos')+'.';o.lines.push('📆 '+o.short);
+    var ls=PLANS().filter(function(p){return(p.k==='parc'||p.k==='div')&&active(p,M)}).map(function(p){var r=p.tot-pnum(p,M)+1;return{n:p.name,v:p.v,r:r,s:r2(p.v*r)}}).sort(function(a,b){return a.s-b.s});
+    if(ls.length)o.lines.push('❄️ Estratégia “bola de neve”: quite primeiro as de menor saldo, liberando parcela mais rápido. Ordem: '+ls.slice(0,4).map(function(x){return x.n+' ('+x.r+'× '+money(x.v)+' ≈ '+money(x.s)+')'}).join(' → ')+'.');
+    o.lines.push('💡 Ao antecipar parcelas, peça o desconto dos juros. Não assumam parcelas novas enquanto estiverem acima da meta.');return o}
+  if(g.kind==='mil'){var ms=miSummary(),bal=ms.by[g.prog]||0,lv=0;Object.keys(ms.by).forEach(function(k){if(k!==g.prog&&/livelo|esfera/i.test(k))lv+=Math.max(0,ms.by[k])});
+    var tgt=g.pts||0,acc=miAccrual(),mo=Math.max(1,diff((g.date||addM(M,12)+'-01').slice(0,7),M)),club=acc.clubs[g.prog]||0,bonus=80;
+    var potential=bal+Math.round(lv*(1+bonus/100)),per=Math.round(acc.card*(1+bonus/100))+club,rem=Math.max(0,tgt-potential);o.pct=tgt?Math.min(1,potential/tgt):0;
+    o.lines.push('Saldo em '+esc(g.prog)+': <b>'+int(bal)+'</b>'+(lv?' + '+int(lv)+' na Livelo/Esfera (≈ '+int(Math.round(lv*(1+bonus/100)))+' se transferidos com 80% de bônus)':'')+'. Meta: '+int(tgt)+'.');
+    if(!rem){o.lvl='good';o.head='já dá para emitir';o.short='Pontos suficientes, contando a transferência bonificada.';o.lines.push('✅ Já chega na meta contando a transferência. Aguardem uma promoção de bônus para transferir e emitam.');return o}
+    var nm=per?Math.ceil(rem/per):null;o.lines.push('Ritmo estimado: '+int(per)+' milhas/mês (cartão com 80% de bônus na transferência'+(club?' + clube '+int(club):'')+').');
+    if(nm&&nm<=mo){o.lvl='good';o.head='no prazo (~'+nm+' meses)';o.short='No ritmo atual, chega em cerca de '+nm+' meses.'}
+    else{o.lvl='warn';var falta=Math.ceil(rem/mo-per);o.head=nm?'~'+nm+' meses no ritmo atual':'sem acúmulo previsto';o.short='Para chegar no prazo, faltam cerca de '+int(Math.max(0,falta))+' milhas por mês.';
+      o.lines.push('📆 '+o.short);o.lines.push('Opções: concentrar mais gastos no cartão que pontua, um clube de '+int(Math.max(0,falta))+' milhas/mês no '+esc(g.prog)+' (vale se o milheiro ficar baixo), compras pelo shopping de pontos e esperar promoções de 100% para transferir.')}
+    return o}
+  return o}
+
+/* ---------- telas ---------- */
+function vCons(){
+  var h='<div class="hd"><div class="hi"><small><button class="link" style="padding:0;margin:0" data-tab="mais">‹ Mais</button></small><b>Consultor <span class="tbadge">teste</span></b></div></div>';
+  h+='<div class="seg" style="margin-bottom:12px"><button data-act="ctab" data-v="ana" class="'+(CTAB==='ana'?'on':'')+'">Análise</button><button data-act="ctab" data-v="met" class="'+(CTAB==='met'?'on':'')+'">Metas'+(GOALS().length?' <span class="cnt">'+GOALS().length+'</span>':'')+'</button></div>';
+  return h+(CTAB==='met'?vGoals():vAna())+'<p class="hint">Área de teste. Sugestões automáticas feitas no próprio celular a partir dos lançamentos. Não substituem um profissional certificado (CFP/CEA).</p>'}
+function vAna(){
+  var h='<button class="save" style="margin:0 0 12px" data-act="runana">'+(CREP?'↻ Avaliar de novo':'🔍 Avaliar dados')+'</button>';
+  if(!CREP)return h+'<div class="card"><div class="empty">O consultor lê todos os lançamentos, contas fixas, faturas, parcelas, milhas e metas, e mostra onde vocês estão gastando mais, riscos e um plano do que fazer.</div></div>';
+  var R=CREP,sc=R.score,lab=sc==null?'—':sc>=80?'Ótima':sc>=60?'Boa':sc>=40?'Atenção':'Crítica',col=sc==null?'#64748B':sc>=80?'#059669':sc>=60?'#0F766E':sc>=40?'#B45309':'#BE123C';
+  h+='<div class="hero" style="padding:18px;background:linear-gradient(135deg,'+col+','+col+'cc)"><small>Saúde financeira · '+pad(R.at.getHours())+':'+pad(R.at.getMinutes())+'</small><div style="display:flex;align-items:baseline;gap:10px"><div class="big" style="margin:0">'+(sc==null?'—':sc)+'</div><b style="font-size:18px">'+lab+'</b></div>'+
+    (R.nums.inc?'<div class="io io3" style="margin-top:10px"><div>Entra<b>'+money(R.nums.inc)+'</b></div><div>Sai<b>'+money(R.nums.out)+'</b></div><div>Sobra<b>'+money(R.nums.free)+'</b></div></div>':'')+'</div>';
+  if(R.plans){var P=R.plans.filter(function(p){return p.key===CPLAN})[0]||R.plans[1];
+    h+='<div class="sec"><b>Planos de ação</b></div><div class="card" style="padding:12px 14px"><div class="seg" style="margin-bottom:10px">'+R.plans.map(function(p){return '<button data-act="cplan" data-v="'+p.key+'" class="'+(p.key===P.key?'on':'')+'">'+p.name+'<br><small style="font-weight:500;color:var(--mute)">−'+money(p.tot).replace('R$ ','R$')+'</small></button>'}).join('')+'</div>'+
+    '<p class="hint" style="margin:0 0 8px">'+P.desc+'</p>'+(P.items.length?P.items.map(function(x){return '<div class="lg"><span style="flex:1;padding-right:8px">• '+x[0]+'</span><b>'+(x[1]?'−'+money(x[1]):'—')+'</b></div>'}).join(''):'<div class="empty">Ainda não há gastos variáveis suficientes para sugerir cortes.</div>')+
+    '<div class="plan-tot"><div><small>Economia por mês</small><b>'+money(P.tot)+'</b></div><div><small>Em 1 ano</small><b>'+money(P.year)+'</b></div><div><small>Sobra do mês</small><b>'+money(P.free)+'</b></div></div>'+
+    (P.goal&&P.goal.m?'<p class="hint" style="margin:8px 0 0">🎯 Com esse plano, a meta “'+esc(P.goal.name)+'” fica pronta em cerca de '+P.goal.m+' mes'+(P.goal.m>1?'es':'')+'.</p>':'')+'</div>'}
+  var grp=[['bad','Atenção agora'],['warn','Onde ajustar'],['good','Indo bem'],['info','Recomendações'],['mil','Milhas']];
+  grp.forEach(function(g){var l=R.cards.filter(function(c){return c.lvl===g[0]});if(!l.length)return;h+='<div class="sec"><b>'+g[1]+'</b></div>';
+    l.forEach(function(c){h+='<div class="adv a-'+c.lvl+'"><div class="ai">'+c.ic+'</div><div><b>'+c.t+'</b><p>'+c.x+'</p>'+(c.act?'<button class="link" style="margin:6px 0 0;padding:0" data-act="'+c.act[0]+'" data-v="'+c.act[1]+'">'+(c.act[0]==='newgoal'?'Criar essa meta ›':'Ir para metas ›')+'</button>':'')+'</div></div>'})});
+  return h}
+function vGoals(){
+  var l=GOALS().sort(function(a,b){return(a.date||'9').localeCompare(b.date||'9')}),h='';
+  if(!l.length)h+='<div class="card"><div class="empty">Nenhuma meta ainda. Ex.: viagem em julho, reserva de emergência, gastar até R$ 600 com lazer, chegar a 50 mil milhas.</div></div>';
+  l.forEach(function(g){var p=goalPlan(g),op=GOPEN[g.id],col={good:'var(--pri)',warn:'var(--amb)',bad:'var(--red)',info:'var(--ink2)'}[p.lvl];
+    h+='<div class="card goal"><button class="it" data-act="gopen" data-id="'+esc(g.id)+'"><div class="ic" style="background:#F1F5F9">'+GK[g.kind][1]+'</div><div class="mid"><b>'+esc(g.name)+'</b><small style="color:'+col+'">'+p.head+'</small></div><span style="color:var(--mute)">'+(op?'▴':'▾')+'</span></button>'+
+      '<div class="bar" style="height:7px;margin:0 0 12px"><i style="width:'+Math.min(100,Math.round(p.pct*100))+'%;background:'+col+'"></i></div>';
+    if(op)h+='<div class="gplan">'+p.lines.map(function(x){return '<p>'+x+'</p>'}).join('')+'<div class="chips" style="margin:8px 0 10px">'+((g.kind==='poup'||g.kind==='res')?'<button class="chip on" data-act="gsave" data-id="'+esc(g.id)+'">+ Guardei</button>':'')+'<button class="chip" data-act="gedit" data-id="'+esc(g.id)+'">Editar</button></div></div>';
+    h+='</div>'});
+  return h+'<button class="save" data-act="newgoal">+ Nova meta</button>'}
+function goalForm(){var f=GF,k=f.kind,h='<b style="font-size:19px;display:block;margin:2px 4px 12px">'+(f.id?'Editar':'Nova')+' meta</b>';
+  if(!f.id)h+='<div class="chips">'+Object.keys(GK).map(function(x){return '<button class="chip'+(k===x?' on':'')+'" data-act="gk" data-v="'+x+'">'+GK[x][1]+' '+GK[x][0]+'</button>'}).join('')+'</div>';
+  h+='<div class="info"><div class="irow"><span>Nome</span><input class="fin" id="g-name" value="'+esc(f.name)+'" placeholder="ex.: Viagem de julho"></div>';
+  if(k==='poup'||k==='res')h+='<div class="irow"><span>Valor da meta</span><input class="fin" id="g-target" inputmode="decimal" value="'+esc(f.target)+'" placeholder="R$ 0,00"></div><div class="irow"><span>Já guardado</span><input class="fin" id="g-saved" inputmode="decimal" value="'+esc(f.saved)+'" placeholder="R$ 0,00"></div><div class="irow"><span>Até quando</span><input class="fin" id="g-date" type="date" value="'+esc(f.date)+'"></div>';
+  if(k==='lim')h+='<div class="irow"><span>Categoria</span><select class="sel" id="g-cat">'+CFG().cats.map(function(c){return '<option value="'+c[0]+'"'+(f.cat===c[0]?' selected':'')+'>'+c[1]+' '+esc(c[2])+'</option>'}).join('')+'</select></div><div class="irow"><span>Teto por mês</span><input class="fin" id="g-limit" inputmode="decimal" value="'+esc(f.limit)+'" placeholder="R$ 0,00"></div>';
+  if(k==='div')h+='<div class="irow"><div>Comprometer no máximo (%)<small>parte da renda em dívidas e parcelas</small></div><input class="fin" id="g-pct" inputmode="numeric" value="'+esc(f.pct)+'" style="max-width:80px"></div>';
+  if(k==='mil')h+='<div class="irow"><span>Programa</span>'+selProg('g-prog',f.prog)+'</div><div class="irow"><span>Milhas necessárias</span><input class="fin" id="g-pts" inputmode="numeric" value="'+esc(f.pts)+'" placeholder="ex.: 50000"></div><div class="irow"><span>Até quando</span><input class="fin" id="g-date" type="date" value="'+esc(f.date)+'"></div>';
+  h+='</div>';if(k==='res'&&!f.id)h+='<p class="hint">Sugestão: 6 meses de custos essenciais ≈ '+money(essentialMonthly()*6)+'.</p>';
+  openSheet(h+'<button class="save" data-act="savegoal">Salvar</button>'+(f.id?'<button class="ghost" data-act="delgoal">Excluir</button>':''))}
+function grabG(){['name','target','saved','date','cat','limit','pct','prog','pts'].forEach(function(k){var e=document.getElementById('g-'+k);if(e)GF[k]=e.value})}
+function saveGoal(){grabG();var f=GF,id=f.id||uid(),o=(DB.goal||{})[id]||{},g={id:id,kind:f.kind,name:(f.name||'').trim()||GK[f.kind][0],by:o.by||ME.id};
+  if(f.kind==='poup'||f.kind==='res'){g.target=parseBR(f.target);g.saved=parseBR(f.saved);g.date=f.date||'';if(!g.target){toast('Digite o valor da meta');return}}
+  if(f.kind==='lim'){g.cat=f.cat;g.limit=parseBR(f.limit);if(!g.limit){toast('Digite o teto');return}}
+  if(f.kind==='div')g.pct=Math.max(5,Math.min(90,parseInt(f.pct,10)||30));
+  if(f.kind==='mil'){g.prog=f.prog;g.pts=parseInt(String(f.pts).replace(/\D/g,''),10)||0;g.date=f.date||'';if(!g.pts){toast('Digite as milhas');return}}
+  put('goal',id,g);GOPEN[id]=true;GF=null;closeSheet();CTAB='met';tab='cons';render();toast('Meta salva')}
+function newGoal(kind){kind=kind||'poup';var ess=essentialMonthly();GF={kind:kind,name:kind==='res'?'Reserva de emergência':'',target:kind==='res'?num(Math.round(ess*6)):'',saved:'',date:kind==='res'?addDays(TODAY,365):addDays(TODAY,180),cat:'lazer',limit:'',pct:'30',prog:'Smiles',pts:''};goalForm()}
 </script>
 </body>
 </html>
